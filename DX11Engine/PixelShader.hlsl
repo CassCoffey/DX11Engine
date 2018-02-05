@@ -1,5 +1,6 @@
 
 Texture2D diffuseTexture : register(t0);
+Texture2D normalTexture : register(t1);
 SamplerState basicSampler : register(s0);
 
 // Struct representing the data we expect to receive from earlier pipeline stages
@@ -16,7 +17,9 @@ struct VertexToPixel
 	//  v    v                v
 	float4 position		: SV_POSITION;
 	float3 normal		: NORMAL;
+	float3 tangent		: TANGENT;
 	float2 uv			: TEXCOORD;
+	float3 worldPos		: POSITION;
 };
 
 struct DirectionalLight
@@ -24,6 +27,13 @@ struct DirectionalLight
 	float4 ambientColor;
 	float4 diffuseColor;
 	float3 direction;
+};
+
+struct PointLight
+{
+	float4 ambientColor;
+	float4 diffuseColor;
+	float3 position;
 };
 
 // Constant Buffer
@@ -35,20 +45,33 @@ struct DirectionalLight
 cbuffer externalData : register(b0)
 {
 	DirectionalLight light;
-	DirectionalLight lightTwo;
+	PointLight lightTwo;
+
+	float3 CameraPosition;
 };
 
-float4 calculateLight(float3 normal, DirectionalLight dLight)
+float4 calculateDirLight(float3 normal, DirectionalLight dLight)
 {
 	float3 normDir = normalize(-dLight.direction);
 
 	float amount = saturate(dot(normal, normDir));
 
-	// Just return the input color
-	// - This color (like most values passing through the rasterizer) is 
-	//   interpolated for each pixel between the corresponding vertices 
-	//   of the triangle we're rendering
 	return (dLight.diffuseColor * amount) + dLight.ambientColor;
+}
+
+float4 calculatePointLight(float3 normal, float3 worldPos, PointLight pLight)
+{
+	float3 dirToPointLight = normalize(pLight.position - worldPos);
+
+	float amount = saturate(dot(normal, dirToPointLight));
+
+	float3 refl = reflect(-dirToPointLight, normal);
+
+	float3 dirToCamera = normalize(CameraPosition - worldPos);
+
+	float specular = pow(saturate(dot(refl, dirToCamera)), 64);
+
+	return (pLight.diffuseColor * amount) + pLight.ambientColor + specular;
 }
 
 // --------------------------------------------------------
@@ -62,8 +85,18 @@ float4 calculateLight(float3 normal, DirectionalLight dLight)
 // --------------------------------------------------------
 float4 main(VertexToPixel input) : SV_TARGET
 {
-	float4 lightOneColor = calculateLight(input.normal, light);
-	float4 lightTwoColor = calculateLight(input.normal, lightTwo);
+	float3 unpackedNormal = normalTexture.Sample(basicSampler, input.uv) * 2.0f - 1.0f;
+
+	float3 N = normalize(input.normal);
+	float3 T = normalize(input.tangent - dot(input.tangent, N) * N);
+	float3 B = cross(N, T);
+
+	float3x3 TBN = float3x3(T, B, N);
+
+	float3 finalNormal = mul(unpackedNormal, TBN);
+
+	float4 lightOneColor = calculateDirLight(finalNormal, light);
+	float4 lightTwoColor = calculatePointLight(finalNormal, input.worldPos, lightTwo);
 
 	float4 surfaceColor = diffuseTexture.Sample(basicSampler, input.uv);
 
@@ -71,5 +104,5 @@ float4 main(VertexToPixel input) : SV_TARGET
 	// - This color (like most values passing through the rasterizer) is 
 	//   interpolated for each pixel between the corresponding vertices 
 	//   of the triangle we're rendering
-	return (lightOneColor + lightTwoColor) * surfaceColor;
+	return surfaceColor * float4(float3(0.1f,0.1f,0.1f) + lightOneColor + lightTwoColor, 1);
 }

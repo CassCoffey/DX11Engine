@@ -37,9 +37,8 @@ private:
 	Camera* camera;
 
 	// Texture
-	ID3D11ShaderResourceView* crateTexture;
-	ID3D11ShaderResourceView* ornamentTexture;
-	ID3D11ShaderResourceView* lightIcon;
+	ID3D11ShaderResourceView* stoneTexture;
+	ID3D11ShaderResourceView* stoneNormal;
 
 	// Particle stuff
 	ID3D11ShaderResourceView* particleTexture;
@@ -55,8 +54,7 @@ private:
 	D3D11_SAMPLER_DESC sampleDesc;
 
 	// Materials
-	Material* crateMat;
-	Material* ornamentMat;
+	Material* stoneMat;
 
 	// Meshes
 	Mesh* cone;
@@ -68,7 +66,7 @@ private:
 
 	// Lights
 	DirectionalLight light;
-	DirectionalLight lightTwo;
+	PointLight lightTwo;
 
 	// Entities
 	std::vector<Entity*> entities;

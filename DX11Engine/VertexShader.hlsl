@@ -1,4 +1,3 @@
-
 // Constant Buffer
 // - Allows us to define a buffer of individual variables 
 //    which will (eventually) hold data from our C++ code
@@ -18,7 +17,7 @@ cbuffer externalData : register(b0)
 // - The name of the struct itself is unimportant, but should be descriptive
 // - Each variable must have a semantic, which defines its usage
 struct VertexShaderInput
-{ 
+{
 	// Data type
 	//  |
 	//  |   Name          Semantic
@@ -26,6 +25,7 @@ struct VertexShaderInput
 	//  v    v                v
 	float3 position		: POSITION;     // XYZ position
 	float3 normal		: NORMAL;
+	float3 tangent		: TANGENT;
 	float2 uv			: TEXCOORD;
 };
 
@@ -43,7 +43,9 @@ struct VertexToPixel
 	//  v    v                v
 	float4 position		: SV_POSITION;	// XYZW position (System Value Position)
 	float3 normal		: NORMAL;
+	float3 tangent		: TANGENT;
 	float2 uv			: TEXCOORD;
+	float3 worldPos		: POSITION;
 };
 
 // --------------------------------------------------------
@@ -53,7 +55,7 @@ struct VertexToPixel
 // - Output is a single struct of data to pass down the pipeline
 // - Named "main" because that's the default the shader compiler looks for
 // --------------------------------------------------------
-VertexToPixel main( VertexShaderInput input )
+VertexToPixel main(VertexShaderInput input)
 {
 	// Set up output struct
 	VertexToPixel output;
@@ -72,9 +74,12 @@ VertexToPixel main( VertexShaderInput input )
 	//
 	// The result is essentially the position (XY) of the vertex on our 2D 
 	// screen and the distance (Z) from the camera (the "depth" of the pixel)
-	output.position = mul(float4(input.position, 1.0f), worldViewProj);
+	output.position = mul(float4(input.position, 1.0f), worldViewProj)
+
+		output.worldPos = mul(float4(input.position, 1.0f), world).xyz;
 
 	output.normal = mul(input.normal, (float3x3)world);
+	output.tangent = mul(input.tangent, (float3x3)world);
 
 	output.uv = input.uv;
 

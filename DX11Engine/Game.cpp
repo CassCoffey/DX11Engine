@@ -57,17 +57,15 @@ Game::~Game()
 
 	delete camera;
 
-	delete crateMat;
-	delete ornamentMat;
+	delete stoneMat;
 
-	crateTexture->Release();
-	ornamentTexture->Release();
+	stoneTexture->Release();
+	stoneNormal->Release();
 	sampleState->Release();
 	particleTexture->Release();
 	particleBlendState->Release();
 	particleDepthState->Release();
 	noBlendState->Release();
-	lightIcon->Release();
 
 	for (int i = 0; i < entities.size(); i++)
 	{
@@ -85,8 +83,8 @@ void Game::Init()
 	CreateMatrices();
 	CreateBasicGeometry();
 
-	CreateWICTextureFromFile(device, context, L"Assets/Textures/crate.png", 0, &crateTexture);
-	CreateWICTextureFromFile(device, context, L"Assets/Textures/ornament.jpg", 0, &ornamentTexture);
+	CreateWICTextureFromFile(device, context, L"Assets/Textures/StoneWall_albedo.png", 0, &stoneTexture);
+	CreateWICTextureFromFile(device, context, L"Assets/Textures/StoneWall_normal.png", 0, &stoneNormal);
 	CreateWICTextureFromFile(device, context, L"Assets/Textures/particle.jpg", 0, &particleTexture);
 
 	sampleDesc = { };
@@ -98,15 +96,14 @@ void Game::Init()
 
 	device->CreateSamplerState(&sampleDesc, &sampleState);
 
-	crateMat = new Material(vertexShader, pixelShader, crateTexture, sampleState);
-	ornamentMat = new Material(vertexShader, pixelShader, ornamentTexture, sampleState);
+	stoneMat = new Material(vertexShader, pixelShader, stoneTexture, stoneNormal, sampleState);
 
 	CreateEntities();
 
 	camera = new Camera((float)width, (float)height);
 
 	light = { XMFLOAT4(+0.1f, +0.1f, +0.1f, +1.0f), XMFLOAT4(+0.0f, +0.0f, +1.0f, +1.0f), XMFLOAT3(+1.0f, -1.0f, +1.0f) };
-	lightTwo = { XMFLOAT4(+0.1f, +0.1f, +0.1f, +1.0f), XMFLOAT4(+1.0f, +1.0f, +0.0f, +1.0f), XMFLOAT3(-1.0f, +1.0f, -1.0f) };
+	lightTwo = { XMFLOAT4(+0.1f, +0.1f, +0.1f, +1.0f), XMFLOAT4(+1.0f, +1.0f, +0.0f, +1.0f), XMFLOAT3(-2.0f, 0.0f, 0.0f) };
 
 	// A depth state for the particles
 	D3D11_DEPTH_STENCIL_DESC dsDesc = {};
@@ -258,9 +255,9 @@ void Game::CreateBasicGeometry()
 
 void Game::CreateEntities()
 {
-	Entity* temp1 = new Entity(cube, crateMat, worldMatrix, XMFLOAT3(0, 0, 0), XMFLOAT3(0, 0, 0), XMFLOAT3(1, 1, 1));
+	Entity* temp1 = new Entity(cube, stoneMat, worldMatrix, XMFLOAT3(0, 0, 0), XMFLOAT3(0, 0, 0), XMFLOAT3(1, 1, 1));
 	entities.push_back(temp1);
-	Entity* temp2 = new Entity(sphere, crateMat, worldMatrix, XMFLOAT3(-3, 0, 0), XMFLOAT3(0, 0, 0), XMFLOAT3(1, 1, 1));
+	Entity* temp2 = new Entity(sphere, stoneMat, worldMatrix, XMFLOAT3(-3, 0, 0), XMFLOAT3(0, 0, 0), XMFLOAT3(1, 1, 1));
 	entities.push_back(temp2);
 }
 
@@ -294,6 +291,9 @@ void Game::Update(float deltaTime, float totalTime)
 	if (GetAsyncKeyState(VK_ESCAPE))
 		Quit();
 
+	entities[0]->rotation.y = totalTime / 2;
+	entities[1]->rotation.y = totalTime / 2;
+
 	emitter->Update(deltaTime);
 
 	camera->Update(deltaTime);
@@ -325,7 +325,12 @@ void Game::Draw(float deltaTime, float totalTime)
 	pixelShader->SetData(
 		"lightTwo",
 		&lightTwo,
-		sizeof(DirectionalLight));
+		sizeof(PointLight));
+
+	pixelShader->SetData(
+		"CameraPosition",
+		&(camera->position),
+		sizeof(XMFLOAT3));
 
 	for (int i = 0; i < entities.size(); i++)
 	{

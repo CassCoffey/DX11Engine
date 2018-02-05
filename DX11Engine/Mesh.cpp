@@ -188,6 +188,9 @@ Mesh::~Mesh()
 
 void Mesh::SetBuffers(Vertex * vertices, UINT * indices, int vertNum, int indexNum, ID3D11Device* device)
 {
+	// Create tangents
+	CalculateTangents(vertices, vertNum, indices, indexNum);
+
 	vertexBuffer = 0;
 	indexBuffer = 0;
 	numIndices = indexNum;
@@ -233,6 +236,68 @@ void Mesh::SetBuffers(Vertex * vertices, UINT * indices, int vertNum, int indexN
 	// Actually create the buffer with the initial data
 	// - Once we do this, we'll NEVER CHANGE THE BUFFER AGAIN
 	device->CreateBuffer(&ibd, &initialIndexData, &indexBuffer);
+}
+
+void Mesh::CalculateTangents(Vertex * vertices, int vertNum, UINT * indices, int indexNum)
+{
+	// Clear tangents
+	for (int i = 0; i < vertNum; i++)
+	{
+		vertices[i].Tangent = XMFLOAT3(0, 0, 0);
+	}
+
+	// Calculate one triangle at a time
+	for (int i = 0; i < vertNum;)
+	{
+		UINT i1 = indices[i++];
+		UINT i2 = indices[i++];
+		UINT i3 = indices[i++];
+		Vertex* v1 = &vertices[i1];
+		Vertex* v2 = &vertices[i2];
+		Vertex* v3 = &vertices[i3];
+
+		float x1 = v2->Position.x - v1->Position.x;
+		float y1 = v2->Position.y - v1->Position.y;
+		float z1 = v2->Position.z - v1->Position.z;
+
+		float x2 = v3->Position.x - v1->Position.x;
+		float y2 = v3->Position.y - v1->Position.y;
+		float z2 = v3->Position.z - v1->Position.z;
+
+		float s1 = v2->UV.x - v1->UV.x;
+		float t1 = v2->UV.y - v1->UV.y;
+
+		float s2 = v3->UV.x - v1->UV.x;
+		float t2 = v3->UV.y - v1->UV.y;
+
+		float r = 1.0f / (s1 * t2 - s2 * t1);
+
+		float tx = (t2 * x1 - t1 * x2) * r;
+		float ty = (t2 * y1 - t1 * y2) * r;
+		float tz = (t2 * z1 - t1 * z2) * r;
+
+		v1->Tangent.x += tx;
+		v1->Tangent.y += ty;
+		v1->Tangent.z += tz;
+
+		v2->Tangent.x += tx;
+		v2->Tangent.y += ty;
+		v2->Tangent.z += tz;
+
+		v3->Tangent.x += tx;
+		v3->Tangent.y += ty;
+		v3->Tangent.z += tx;
+	}
+
+	for (int i = 0; i < vertNum; i++)
+	{
+		XMVECTOR normal = XMLoadFloat3(&vertices[i].Normal);
+		XMVECTOR tangent = XMLoadFloat3(&vertices[i].Tangent);
+
+		tangent = XMVector3Normalize(tangent - normal * XMVector3Dot(normal, tangent));
+
+		XMStoreFloat3(&vertices[i].Tangent, tangent);
+	}
 }
 
 ID3D11Buffer * const* Mesh::GetVertexBuffer()

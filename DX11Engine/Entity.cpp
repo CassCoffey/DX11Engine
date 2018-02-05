@@ -27,6 +27,7 @@ void Entity::PrepareMaterial(XMFLOAT4X4 proj, XMFLOAT4X4 view)
 	// Texture Stuff
 	material->GetPixelShader()->SetSamplerState("basicSampler", material->getSampleState());
 	material->GetPixelShader()->SetShaderResourceView("diffuseTexture", material->getTexture());
+	material->GetPixelShader()->SetShaderResourceView("normalTexture", material->getNormals());
 
 	// Set the vertex and pixel shaders to use for the next Draw() command
 	//  - These don't technically need to be set every frame...YET
