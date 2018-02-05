@@ -63,11 +63,13 @@ PSOutput main(VertexToPixel input)
 
 	float3 finalNormal = mul(unpackedNormal, TBN);
 
-	OUT.normals = finalNormal;
+	OUT.normals = float4(finalNormal, 1);
 
 	float4 surfaceColor = diffuseTexture.Sample(basicSampler, input.uv);
 
 	OUT.color = surfaceColor;
 
-	OUT.worldPos = input.worldPos;
+	OUT.worldPos = float4(input.worldPos, 1);
+
+	return OUT;
 }

@@ -1,9 +1,6 @@
 #include "Game.h"
 #include "Vertex.h"
 
-// For the DirectX Math library
-using namespace DirectX;
-
 // --------------------------------------------------------
 // Constructor
 //
@@ -55,6 +52,9 @@ Game::~Game()
 	delete particlePS;
 	delete emitter;
 
+	delete skyboxPS;
+	delete skyboxVS;
+
 	delete camera;
 
 	delete stoneMat;
@@ -66,6 +66,9 @@ Game::~Game()
 	particleBlendState->Release();
 	particleDepthState->Release();
 	noBlendState->Release();
+	skybox->Release();
+	skyboxRasterState->Release();
+	skyboxDepthState->Release();
 
 	for (int i = 0; i < entities.size(); i++)
 	{
@@ -87,6 +90,8 @@ void Game::Init()
 	CreateWICTextureFromFile(device, context, L"Assets/Textures/StoneWall_normal.png", 0, &stoneNormal);
 	CreateWICTextureFromFile(device, context, L"Assets/Textures/particle.jpg", 0, &particleTexture);
 
+	CreateDDSTextureFromFile(device, L"Assets/Textures/skybox.dds", 0, &skybox);
+
 	sampleDesc = { };
 	sampleDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
 	sampleDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -96,7 +101,7 @@ void Game::Init()
 
 	device->CreateSamplerState(&sampleDesc, &sampleState);
 
-	stoneMat = new Material(vertexShader, pixelShader, stoneTexture, stoneNormal, sampleState);
+	stoneMat = new Material(vertexShader, pixelShader, stoneTexture, stoneNormal, skybox, sampleState);
 
 	CreateEntities();
 
@@ -157,6 +162,22 @@ void Game::Init()
 		particlePS,
 		particleTexture);
 
+	// Some states for the sky drawing ----------------------
+
+	// Rasterize state for drawing the "inside"
+	D3D11_RASTERIZER_DESC rd = {}; // Remember to zero it out!
+	rd.CullMode = D3D11_CULL_FRONT;
+	rd.FillMode = D3D11_FILL_SOLID;
+	rd.DepthClipEnable = true;
+	device->CreateRasterizerState(&rd, &skyboxRasterState);
+
+	// Depth state for accepting pixels with depth EQUAL to existing depth
+	D3D11_DEPTH_STENCIL_DESC ds = {};
+	ds.DepthEnable = true;
+	ds.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+	ds.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+	device->CreateDepthStencilState(&ds, &skyboxDepthState);
+
 	// Tell the input assembler stage of the pipeline what kind of
 	// geometric primitives (points, lines or triangles) we want to draw.  
 	// Essentially: "What kind of shape should the GPU draw with our data?"
@@ -182,6 +203,12 @@ void Game::LoadShaders()
 
 	particlePS = new SimplePixelShader(device, context);
 	particlePS->LoadShaderFile(L"ParticlePS.cso");
+
+	skyboxVS = new SimpleVertexShader(device, context);
+	skyboxVS->LoadShaderFile(L"SkyboxVS.cso");
+
+	skyboxPS = new SimplePixelShader(device, context);
+	skyboxPS->LoadShaderFile(L"SkyboxPS.cso");
 }
 
 
@@ -304,8 +331,8 @@ void Game::Update(float deltaTime, float totalTime)
 // --------------------------------------------------------
 void Game::Draw(float deltaTime, float totalTime)
 {
-	// Background color (Cornflower Blue in this case) for clearing
-	const float color[4] = { 0.4f, 0.6f, 0.75f, 0.0f };
+	// Background color (Black in this case) for clearing
+	const float color[4] = { 0,0,0,0 };
 
 	// Clear the render target and depth buffer (erases what's on the screen)
 	//  - Do this ONCE PER FRAME
@@ -317,20 +344,9 @@ void Game::Draw(float deltaTime, float totalTime)
 		1.0f,
 		0);
 
-	pixelShader->SetData(
-		"light",
-		&light,
-		sizeof(DirectionalLight));
-
-	pixelShader->SetData(
-		"lightTwo",
-		&lightTwo,
-		sizeof(PointLight));
-
-	pixelShader->SetData(
-		"CameraPosition",
-		&(camera->position),
-		sizeof(XMFLOAT3));
+	pixelShader->SetData("light", &light, sizeof(DirectionalLight));
+	pixelShader->SetData("lightTwo", &lightTwo,	sizeof(PointLight));
+	pixelShader->SetFloat3("CameraPosition", camera->position);
 
 	for (int i = 0; i < entities.size(); i++)
 	{
@@ -339,10 +355,11 @@ void Game::Draw(float deltaTime, float totalTime)
 
 	RenderParticles();
 
+	RenderSkybox();
+
 	// Reset states
 	context->RSSetState(0);
 	context->OMSetDepthStencilState(0, 0);
-	context->OMSetBlendState(noBlendState, 0, 0xffffffff);  // no blending
 
 	// Present the back buffer to the user
 	//  - Puts the final frame we're drawing into the window so the user can see it
@@ -355,8 +372,37 @@ void Game::RenderParticles()
 	float blend[4] = { 1,1,1,1 };
 	context->OMSetBlendState(particleBlendState, blend, 0xffffffff);  // Additive blending
 	context->OMSetDepthStencilState(particleDepthState, 0);			// No depth WRITING
-																	// Draw the emitter
+
 	emitter->Draw(context, camera);
+
+	context->OMSetBlendState(noBlendState, 0, 0xffffffff);  // no blending
+}
+
+void Game::RenderSkybox()
+{
+	ID3D11Buffer* skyboxVB = sphere->GetVertexBuffer();
+	ID3D11Buffer* skyboxIB = sphere->GetIndexBuffer();
+
+	UINT stride = sizeof(Vertex);
+	UINT offset = 0;
+
+	context->IASetVertexBuffers(0, 1, &skyboxVB, &stride, &offset);
+	context->IASetIndexBuffer(skyboxIB, DXGI_FORMAT_R32_UINT, 0);
+
+	skyboxVS->SetMatrix4x4("view", camera->viewMat);
+	skyboxVS->SetMatrix4x4("projection", camera->projMat);
+	skyboxVS->CopyAllBufferData();
+	skyboxVS->SetShader();
+
+	skyboxPS->SetShaderResourceView("SkyTexture", skybox);
+	skyboxPS->SetSamplerState("BasicSampler", sampleState);
+	skyboxPS->CopyAllBufferData();
+	skyboxPS->SetShader();
+
+	context->RSSetState(skyboxRasterState);
+	context->OMSetDepthStencilState(skyboxDepthState, 0);
+
+	context->DrawIndexed(sphere->GetIndexCount(), 0, 0);
 }
 
 

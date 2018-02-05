@@ -300,9 +300,9 @@ void Mesh::CalculateTangents(Vertex * vertices, int vertNum, UINT * indices, int
 	}
 }
 
-ID3D11Buffer * const* Mesh::GetVertexBuffer()
+ID3D11Buffer * Mesh::GetVertexBuffer()
 {
-	return &vertexBuffer;
+	return vertexBuffer;
 }
 
 ID3D11Buffer * Mesh::GetIndexBuffer()

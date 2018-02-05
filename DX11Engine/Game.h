@@ -1,6 +1,7 @@
 #pragma once
 
 #include "DXCore.h"
+#include "DDSTextureLoader.h"
 #include "Mesh.h"
 #include "Entity.h"
 #include "Emitter.h"
@@ -25,6 +26,7 @@ public:
 	void Update(float deltaTime, float totalTime);
 	void Draw(float deltaTime, float totalTime);
 	void RenderParticles();
+	void RenderSkybox();
 
 	// Overridden mouse input helper methods
 	void OnMouseDown (WPARAM buttonState, int x, int y);
@@ -39,6 +41,14 @@ private:
 	// Texture
 	ID3D11ShaderResourceView* stoneTexture;
 	ID3D11ShaderResourceView* stoneNormal;
+
+	// Skybox
+	ID3D11ShaderResourceView* skybox;
+	SimpleVertexShader* skyboxVS;
+	SimplePixelShader* skyboxPS;
+
+	ID3D11RasterizerState* skyboxRasterState;
+	ID3D11DepthStencilState* skyboxDepthState;
 
 	// Particle stuff
 	ID3D11ShaderResourceView* particleTexture;

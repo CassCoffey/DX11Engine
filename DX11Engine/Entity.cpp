@@ -28,6 +28,7 @@ void Entity::PrepareMaterial(XMFLOAT4X4 proj, XMFLOAT4X4 view)
 	material->GetPixelShader()->SetSamplerState("basicSampler", material->getSampleState());
 	material->GetPixelShader()->SetShaderResourceView("diffuseTexture", material->getTexture());
 	material->GetPixelShader()->SetShaderResourceView("normalTexture", material->getNormals());
+	material->GetPixelShader()->SetShaderResourceView("skyTexture", material->getSkybox());
 
 	// Set the vertex and pixel shaders to use for the next Draw() command
 	//  - These don't technically need to be set every frame...YET
@@ -52,8 +53,10 @@ void Entity::Draw(ID3D11DeviceContext* context, XMFLOAT4X4 proj, XMFLOAT4X4 view
 	UINT stride = sizeof(Vertex);
 	UINT offset = 0;
 
+	ID3D11Buffer* vb = mesh->GetVertexBuffer();
+
 	// Draw Mesh
-	context->IASetVertexBuffers(0, 1, mesh->GetVertexBuffer(), &stride, &offset);
+	context->IASetVertexBuffers(0, 1, &vb, &stride, &offset);
 	context->IASetIndexBuffer(mesh->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
 
 	// Finally do the actual drawing

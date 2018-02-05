@@ -1,6 +1,6 @@
-
 Texture2D diffuseTexture : register(t0);
 Texture2D normalTexture : register(t1);
+TextureCube skyTexture : register(t2);
 SamplerState basicSampler : register(s0);
 
 // Struct representing the data we expect to receive from earlier pipeline stages
@@ -10,11 +10,6 @@ SamplerState basicSampler : register(s0);
 // - Each variable must have a semantic, which defines its usage
 struct VertexToPixel
 {
-	// Data type
-	//  |
-	//  |   Name          Semantic
-	//  |    |                |
-	//  v    v                v
 	float4 position		: SV_POSITION;
 	float3 normal		: NORMAL;
 	float3 tangent		: TANGENT;
@@ -74,6 +69,16 @@ float4 calculatePointLight(float3 normal, float3 worldPos, PointLight pLight)
 	return (pLight.diffuseColor * amount) + pLight.ambientColor + specular;
 }
 
+float4 SkyboxReflection(float3 normal, float3 worldPos)
+{
+	float3 dirToCamera = normalize(CameraPosition - worldPos);
+
+	float3 skyRefl = reflect(-dirToCamera, normal);
+	float4 reflColor = skyTexture.Sample(basicSampler, skyRefl);
+
+	return reflColor;
+}
+
 // --------------------------------------------------------
 // The entry point (main method) for our pixel shader
 // 
@@ -104,5 +109,5 @@ float4 main(VertexToPixel input) : SV_TARGET
 	// - This color (like most values passing through the rasterizer) is 
 	//   interpolated for each pixel between the corresponding vertices 
 	//   of the triangle we're rendering
-	return surfaceColor * float4(float3(0.1f,0.1f,0.1f) + lightOneColor + lightTwoColor, 1);
+	return lerp(surfaceColor, SkyboxReflection(finalNormal, input.worldPos), 0.5f) * float4(float3(0.1f,0.1f,0.1f) + lightOneColor + lightTwoColor, 1);
 }

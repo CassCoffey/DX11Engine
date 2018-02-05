@@ -19,7 +19,7 @@ public:
 
 	void CalculateTangents(Vertex* vertices, int vertNum, UINT* indices, int indexNum);
 
-	ID3D11Buffer* const* GetVertexBuffer();
+	ID3D11Buffer* GetVertexBuffer();
 	ID3D11Buffer* GetIndexBuffer();
 	int GetIndexCount();
 

@@ -2,12 +2,13 @@
 
 
 
-Material::Material(SimpleVertexShader * vs, SimplePixelShader * ps, ID3D11ShaderResourceView* tex, ID3D11ShaderResourceView* norm, ID3D11SamplerState* ss)
+Material::Material(SimpleVertexShader * vs, SimplePixelShader * ps, ID3D11ShaderResourceView* tex, ID3D11ShaderResourceView* norm, ID3D11ShaderResourceView* sky, ID3D11SamplerState* ss)
 {
 	pixelShader = ps;
 	vertexShader = vs;
 	texture = tex;
 	normals = norm;
+	skybox = sky;
 	sampleState = ss;
 }
 
@@ -33,6 +34,11 @@ ID3D11ShaderResourceView * Material::getTexture()
 ID3D11ShaderResourceView * Material::getNormals()
 {
 	return normals;
+}
+
+ID3D11ShaderResourceView * Material::getSkybox()
+{
+	return skybox;
 }
 
 ID3D11SamplerState * Material::getSampleState()
