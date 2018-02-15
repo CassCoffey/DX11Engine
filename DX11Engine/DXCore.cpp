@@ -55,6 +55,8 @@ DXCore::DXCore(
 	context = 0;
 	swapChain = 0;
 	backBufferRTV = 0;
+	normalRTV = 0;
+	worldPosRTV = 0;
 	depthStencilView = 0;
 
 	// Query performance counter for accurate timing information
@@ -71,6 +73,8 @@ DXCore::~DXCore()
 	// Release all DirectX resources
 	if (depthStencilView) { depthStencilView->Release(); }
 	if (backBufferRTV) { backBufferRTV->Release();}
+	if (normalRTV) { normalRTV->Release(); }
+	if (worldPosRTV) { worldPosRTV->Release(); }
 
 	if (swapChain) { swapChain->Release();}
 	if (context) { context->Release();}
@@ -229,6 +233,40 @@ HRESULT DXCore::InitDirectX()
 	backBufferTexture->Release();
 
 	// Set up the description of the texture to use for the depth buffer
+	D3D11_TEXTURE2D_DESC bufferDesc = {};
+	bufferDesc.Width = width;
+	bufferDesc.Height = height;
+	bufferDesc.MipLevels = 1;
+	bufferDesc.ArraySize = 1;
+	bufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	bufferDesc.BindFlags = D3D11_BIND_RENDER_TARGET;
+	bufferDesc.CPUAccessFlags = 0;
+	bufferDesc.MiscFlags = 0;
+	bufferDesc.SampleDesc.Count = 1;
+	bufferDesc.SampleDesc.Quality = 0;
+
+	ID3D11Texture2D* normalBufferTexture;
+	device->CreateTexture2D(&bufferDesc, 0, &normalBufferTexture);
+	device->CreateRenderTargetView(
+		normalBufferTexture,
+		0,
+		&normalRTV);
+	normalBufferTexture->Release();
+
+	ID3D11Texture2D* worldBufferTexture;
+	device->CreateTexture2D(&bufferDesc, 0, &worldBufferTexture);
+	device->CreateRenderTargetView(
+		worldBufferTexture,
+		0,
+		&worldPosRTV);
+	worldBufferTexture->Release();
+
+	GBuffer[0] = backBufferRTV;
+	GBuffer[1] = normalRTV;
+	GBuffer[2] = worldPosRTV;
+
+	// Set up the description of the texture to use for the depth buffer
 	D3D11_TEXTURE2D_DESC depthStencilDesc = {};
 	depthStencilDesc.Width				= width;
 	depthStencilDesc.Height				= height;
@@ -251,7 +289,7 @@ HRESULT DXCore::InitDirectX()
 
 	// Bind the views to the pipeline, so rendering properly 
 	// uses their underlying textures
-	context->OMSetRenderTargets(1, &backBufferRTV, depthStencilView);
+	context->OMSetRenderTargets(3, GBuffer, depthStencilView);
 
 	// Lastly, set up a viewport so we render into
 	// to correct portion of the window
@@ -281,6 +319,8 @@ void DXCore::OnResize()
 	// Release existing DirectX views and buffers
 	if (depthStencilView) { depthStencilView->Release(); }
 	if (backBufferRTV) { backBufferRTV->Release(); }
+	if (normalRTV) { normalRTV->Release(); }
+	if (worldPosRTV) { worldPosRTV->Release(); }
 
 	// Resize the underlying swap chain buffers
 	swapChain->ResizeBuffers(
@@ -306,6 +346,7 @@ void DXCore::OnResize()
 	depthStencilDesc.Format				= DXGI_FORMAT_D24_UNORM_S8_UINT;
 	depthStencilDesc.Usage				= D3D11_USAGE_DEFAULT;
 	depthStencilDesc.BindFlags			= D3D11_BIND_DEPTH_STENCIL;
+;
 	depthStencilDesc.CPUAccessFlags		= 0;
 	depthStencilDesc.MiscFlags			= 0;
 	depthStencilDesc.SampleDesc.Count	= 1;

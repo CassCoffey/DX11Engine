@@ -40,6 +40,7 @@ Game::~Game()
 	// will clean up their own internal DirectX stuff
 	delete vertexShader;
 	delete pixelShader;
+	delete lightShader;
 
 	delete cone;
 	delete cube;
@@ -107,8 +108,8 @@ void Game::Init()
 
 	camera = new Camera((float)width, (float)height);
 
-	light = { XMFLOAT4(+0.1f, +0.1f, +0.1f, +1.0f), XMFLOAT4(+0.0f, +0.0f, +1.0f, +1.0f), XMFLOAT3(+1.0f, -1.0f, +1.0f) };
-	lightTwo = { XMFLOAT4(+0.1f, +0.1f, +0.1f, +1.0f), XMFLOAT4(+1.0f, +1.0f, +0.0f, +1.0f), XMFLOAT3(-2.0f, 0.0f, 0.0f) };
+	light = { XMFLOAT4(+0.2f, +0.2f, +0.2f, +1.0f), XMFLOAT4(+0.4f, +0.4f, +1.0f, +1.0f), XMFLOAT3(+1.0f, -1.0f, +1.0f) };
+	lightTwo = { XMFLOAT4(+0.2f, +0.2f, +0.2f, +1.0f), XMFLOAT4(+1.0f, +1.0f, +0.4f, +1.0f), XMFLOAT3(-2.0f, 0.0f, 0.0f) };
 
 	// A depth state for the particles
 	D3D11_DEPTH_STENCIL_DESC dsDesc = {};
@@ -153,8 +154,8 @@ void Game::Init()
 		3.141593f,						// Maximum Rotational Velocity
 		XMFLOAT4(1, 0.1f, 0.1f, 1),		// Start color
 		XMFLOAT4(1, 0.6f, 0.1f, 0.00f),		// End color
-		XMFLOAT3(1, 10, 0),				// Max Start velocity
-		XMFLOAT3(-1, 5, 0),			// Min Start velocity
+		XMFLOAT3(2, 10, 2),				// Max Start velocity
+		XMFLOAT3(-2, 5, -2),			// Min Start velocity
 		XMFLOAT3(3, 0, 0),				// Start position
 		XMFLOAT3(0, -9, 0),				// Start acceleration
 		device,
@@ -196,7 +197,10 @@ void Game::LoadShaders()
 	vertexShader->LoadShaderFile(L"VertexShader.cso");
 
 	pixelShader = new SimplePixelShader(device, context);
-	pixelShader->LoadShaderFile(L"PixelShader.cso");
+	pixelShader->LoadShaderFile(L"DeferredPS.cso");
+
+	lightShader = new SimplePixelShader(device, context);
+	lightShader->LoadShaderFile(L"LightsPS.cso");
 
 	particleVS = new SimpleVertexShader(device, context);
 	particleVS->LoadShaderFile(L"ParticleVS.cso");
@@ -338,6 +342,8 @@ void Game::Draw(float deltaTime, float totalTime)
 	//  - Do this ONCE PER FRAME
 	//  - At the beginning of Draw (before drawing *anything*)
 	context->ClearRenderTargetView(backBufferRTV, color);
+	context->ClearRenderTargetView(normalRTV, color);
+	context->ClearRenderTargetView(worldPosRTV, color);
 	context->ClearDepthStencilView(
 		depthStencilView,
 		D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
@@ -353,9 +359,9 @@ void Game::Draw(float deltaTime, float totalTime)
 		entities[i]->Draw(context, camera->projMat, camera->viewMat);
 	}
 
-	RenderParticles();
-
 	RenderSkybox();
+
+	RenderParticles();
 
 	// Reset states
 	context->RSSetState(0);

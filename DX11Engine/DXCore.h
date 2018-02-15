@@ -66,8 +66,13 @@ protected:
 	ID3D11Device*			device;
 	ID3D11DeviceContext*	context;
 
+	// GBuffers
 	ID3D11RenderTargetView* backBufferRTV;
+	ID3D11RenderTargetView* normalRTV;
+	ID3D11RenderTargetView* worldPosRTV;
 	ID3D11DepthStencilView* depthStencilView;
+
+	ID3D11RenderTargetView* GBuffer[3];
 
 	// Helper function for allocating a console window
 	void CreateConsoleWindow(int bufferLines, int bufferColumns, int windowLines, int windowColumns);
