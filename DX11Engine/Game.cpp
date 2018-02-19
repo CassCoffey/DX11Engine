@@ -72,10 +72,16 @@ Game::~Game()
 	skybox->Release();
 	skyboxRasterState->Release();
 	skyboxDepthState->Release();
+	lightDepthState->Release();
 
 	for (int i = 0; i < entities.size(); i++)
 	{
 		delete entities[i];
+	}
+
+	for (int i = 0; i < pLights.size(); i++)
+	{
+		delete pLights[i];
 	}
 }
 
@@ -110,15 +116,14 @@ void Game::Init()
 
 	camera = new Camera((float)width, (float)height);
 
-	light = { XMFLOAT4(+0.2f, +0.2f, +0.2f, +1.0f), XMFLOAT4(+0.4f, +0.4f, +1.0f, +1.0f), XMFLOAT3(+1.0f, -1.0f, +1.0f) };
-	lightTwo = { XMFLOAT4(+0.2f, +0.2f, +0.2f, +1.0f), XMFLOAT4(+1.0f, +1.0f, +0.4f, +1.0f), XMFLOAT3(-2.0f, 0.0f, 0.0f) };
+	CreateLights();
 
 	// A depth state for the particles
-	D3D11_DEPTH_STENCIL_DESC dsDesc = {};
-	dsDesc.DepthEnable = true;
-	dsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO; // Turns off depth writing
-	dsDesc.DepthFunc = D3D11_COMPARISON_LESS;
-	device->CreateDepthStencilState(&dsDesc, &particleDepthState);
+	D3D11_DEPTH_STENCIL_DESC particleDsDesc = {};
+	particleDsDesc.DepthEnable = true;
+	particleDsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO; // Turns off depth writing
+	particleDsDesc.DepthFunc = D3D11_COMPARISON_LESS;
+	device->CreateDepthStencilState(&particleDsDesc, &particleDepthState);
 
 	// Blend for particles (additive)
 	D3D11_BLEND_DESC blend = {};
@@ -175,11 +180,18 @@ void Game::Init()
 	device->CreateRasterizerState(&rd, &skyboxRasterState);
 
 	// Depth state for accepting pixels with depth EQUAL to existing depth
-	D3D11_DEPTH_STENCIL_DESC ds = {};
-	ds.DepthEnable = true;
-	ds.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-	ds.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
-	device->CreateDepthStencilState(&ds, &skyboxDepthState);
+	D3D11_DEPTH_STENCIL_DESC skyboxDsDesc = {};
+	skyboxDsDesc.DepthEnable = true;
+	skyboxDsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+	skyboxDsDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+	device->CreateDepthStencilState(&skyboxDsDesc, &skyboxDepthState);
+
+	// A depth state for the lights
+	D3D11_DEPTH_STENCIL_DESC lightDsDesc = {};
+	lightDsDesc.DepthEnable = false;
+	lightDsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+	lightDsDesc.DepthFunc = D3D11_COMPARISON_NEVER;
+	device->CreateDepthStencilState(&lightDsDesc, &lightDepthState);
 
 	// Tell the input assembler stage of the pipeline what kind of
 	// geometric primitives (points, lines or triangles) we want to draw.  
@@ -297,6 +309,12 @@ void Game::CreateEntities()
 	entities.push_back(temp2);
 }
 
+void Game::CreateLights()
+{
+	PointLight* temp1 = new PointLight(worldMatrix, sphere, vertexShader, lightPS, XMFLOAT4(+0.2f, +0.2f, +0.2f, +1.0f), XMFLOAT4(+0.4f, +0.4f, +1.0f, +1.0f), XMFLOAT3(+1.0f, -1.0f, +1.0f), XMFLOAT3(0, 0, 0), XMFLOAT3(+1.0f, +1.0f, +1.0f));
+	pLights.push_back(temp1);
+}
+
 
 // --------------------------------------------------------
 // Handle resizing DirectX "stuff" to match the new window size.
@@ -340,6 +358,12 @@ void Game::Update(float deltaTime, float totalTime)
 // --------------------------------------------------------
 void Game::Draw(float deltaTime, float totalTime)
 {
+	GBuffer[0] = colorRTV;
+	GBuffer[1] = normalRTV;
+	GBuffer[2] = worldPosRTV;
+
+	context->OMSetRenderTargets(3, GBuffer, depthStencilView);
+
 	// Background color (Black in this case) for clearing
 	const float color[4] = { 0,0,0,0 };
 
@@ -363,6 +387,8 @@ void Game::Draw(float deltaTime, float totalTime)
 	}
 
 	RenderLights();
+
+	Combine();
 
 	RenderSkybox();
 
@@ -424,9 +450,12 @@ void Game::RenderLights()
 
 	context->OMSetRenderTargets(3, GBuffer, depthStencilView);
 
-	lightPS->SetData("light", &light, sizeof(DirectionalLight));
-	lightPS->SetData("lightTwo", &lightTwo, sizeof(PointLight));
-	lightPS->SetFloat3("CameraPosition", camera->position);
+	context->OMSetDepthStencilState(lightDepthState, 0);
+
+	for (int i = 0; i < pLights.size(); i++)
+	{
+		pLights[i]->Draw(context, camera, normalSRV, worldPosSRV);
+	}
 }
 
 void Game::Combine()

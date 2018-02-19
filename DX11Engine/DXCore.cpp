@@ -252,7 +252,7 @@ HRESULT DXCore::InitDirectX()
 	bufferDesc.ArraySize = 1;
 	bufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	bufferDesc.BindFlags = D3D11_BIND_RENDER_TARGET || D3D11_BIND_SHADER_RESOURCE;
+	bufferDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
 	bufferDesc.CPUAccessFlags = 0;
 	bufferDesc.MiscFlags = 0;
 	bufferDesc.SampleDesc.Count = 1;

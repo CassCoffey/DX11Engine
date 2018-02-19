@@ -7,7 +7,7 @@
 #include "Emitter.h"
 #include "SimpleShader.h"
 #include "Camera.h"
-#include "Lights.h"
+#include "PointLight.h"
 #include "WICTextureLoader.h"
 #include <DirectXMath.h>
 
@@ -79,8 +79,8 @@ private:
 
 	// Lights
 	SimplePixelShader* lightPS;
-	DirectionalLight light;
-	PointLight lightTwo;
+	std::vector<PointLight*> pLights;
+	ID3D11DepthStencilState* lightDepthState;
 
 	// Entities
 	std::vector<Entity*> entities;
@@ -90,6 +90,7 @@ private:
 	void CreateMatrices();
 	void CreateBasicGeometry();
 	void CreateEntities();
+	void CreateLights();
 
 	// Wrappers for DirectX shaders to provide simplified functionality
 	SimpleVertexShader* vertexShader;
