@@ -27,6 +27,9 @@ public:
 	void Draw(float deltaTime, float totalTime);
 	void RenderParticles();
 	void RenderSkybox();
+	void RenderLights();
+	void Combine();
+	void ClearStates();
 
 	// Overridden mouse input helper methods
 	void OnMouseDown (WPARAM buttonState, int x, int y);
@@ -75,6 +78,7 @@ private:
 	Mesh* torus;
 
 	// Lights
+	SimplePixelShader* lightPS;
 	DirectionalLight light;
 	PointLight lightTwo;
 

@@ -68,8 +68,14 @@ protected:
 
 	// GBuffers
 	ID3D11RenderTargetView* backBufferRTV;
+	ID3D11RenderTargetView* colorRTV;
+	ID3D11ShaderResourceView* colorSRV;
 	ID3D11RenderTargetView* normalRTV;
+	ID3D11ShaderResourceView* normalSRV;
 	ID3D11RenderTargetView* worldPosRTV;
+	ID3D11ShaderResourceView* worldPosSRV;
+	ID3D11RenderTargetView* lightsRTV;
+	ID3D11ShaderResourceView* lightsSRV;
 	ID3D11DepthStencilView* depthStencilView;
 
 	ID3D11RenderTargetView* GBuffer[3];

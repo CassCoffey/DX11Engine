@@ -56,6 +56,8 @@ Game::~Game()
 	delete skyboxPS;
 	delete skyboxVS;
 
+	delete lightPS;
+
 	delete camera;
 
 	delete stoneMat;
@@ -213,6 +215,9 @@ void Game::LoadShaders()
 
 	skyboxPS = new SimplePixelShader(device, context);
 	skyboxPS->LoadShaderFile(L"SkyboxPS.cso");
+
+	lightPS = new SimplePixelShader(device, context);
+	lightPS->LoadShaderFile(L"LightsPS.cso");
 }
 
 
@@ -342,30 +347,30 @@ void Game::Draw(float deltaTime, float totalTime)
 	//  - Do this ONCE PER FRAME
 	//  - At the beginning of Draw (before drawing *anything*)
 	context->ClearRenderTargetView(backBufferRTV, color);
+	context->ClearRenderTargetView(colorRTV, color);
 	context->ClearRenderTargetView(normalRTV, color);
 	context->ClearRenderTargetView(worldPosRTV, color);
+	context->ClearRenderTargetView(lightsRTV, color);
 	context->ClearDepthStencilView(
 		depthStencilView,
 		D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
 		1.0f,
 		0);
 
-	pixelShader->SetData("light", &light, sizeof(DirectionalLight));
-	pixelShader->SetData("lightTwo", &lightTwo,	sizeof(PointLight));
-	pixelShader->SetFloat3("CameraPosition", camera->position);
-
 	for (int i = 0; i < entities.size(); i++)
 	{
 		entities[i]->Draw(context, camera->projMat, camera->viewMat);
 	}
 
+	RenderLights();
+
 	RenderSkybox();
+
+	ClearStates();
 
 	RenderParticles();
 
-	// Reset states
-	context->RSSetState(0);
-	context->OMSetDepthStencilState(0, 0);
+	ClearStates();
 
 	// Present the back buffer to the user
 	//  - Puts the final frame we're drawing into the window so the user can see it
@@ -409,6 +414,36 @@ void Game::RenderSkybox()
 	context->OMSetDepthStencilState(skyboxDepthState, 0);
 
 	context->DrawIndexed(sphere->GetIndexCount(), 0, 0);
+}
+
+void Game::RenderLights()
+{
+	GBuffer[0] = lightsRTV;
+	GBuffer[1] = 0;
+	GBuffer[2] = 0;
+
+	context->OMSetRenderTargets(3, GBuffer, depthStencilView);
+
+	lightPS->SetData("light", &light, sizeof(DirectionalLight));
+	lightPS->SetData("lightTwo", &lightTwo, sizeof(PointLight));
+	lightPS->SetFloat3("CameraPosition", camera->position);
+}
+
+void Game::Combine()
+{
+	GBuffer[0] = backBufferRTV;
+	GBuffer[1] = 0;
+	GBuffer[2] = 0;
+
+	context->OMSetRenderTargets(3, GBuffer, depthStencilView);
+}
+
+void Game::ClearStates()
+{
+	// Reset states
+	context->RSSetState(0);
+	context->OMSetDepthStencilState(0, 0);
+	context->RSSetState(0);
 }
 
 

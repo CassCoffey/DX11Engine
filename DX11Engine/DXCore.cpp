@@ -54,9 +54,15 @@ DXCore::DXCore(
 	device = 0;
 	context = 0;
 	swapChain = 0;
+	colorRTV = 0;
+	colorSRV = 0;
 	backBufferRTV = 0;
 	normalRTV = 0;
+	normalSRV = 0;
 	worldPosRTV = 0;
+	worldPosSRV = 0;
+	lightsRTV = 0;
+	lightsSRV = 0;
 	depthStencilView = 0;
 
 	// Query performance counter for accurate timing information
@@ -72,9 +78,15 @@ DXCore::~DXCore()
 {
 	// Release all DirectX resources
 	if (depthStencilView) { depthStencilView->Release(); }
+	if (colorRTV) { colorRTV->Release(); }
+	if (colorSRV) { colorSRV->Release(); }
 	if (backBufferRTV) { backBufferRTV->Release();}
 	if (normalRTV) { normalRTV->Release(); }
+	if (normalSRV) { normalSRV->Release(); }
 	if (worldPosRTV) { worldPosRTV->Release(); }
+	if (worldPosSRV) { worldPosSRV->Release(); }
+	if (lightsRTV) { lightsRTV->Release(); }
+	if (lightsSRV) { lightsSRV->Release(); }
 
 	if (swapChain) { swapChain->Release();}
 	if (context) { context->Release();}
@@ -240,11 +252,23 @@ HRESULT DXCore::InitDirectX()
 	bufferDesc.ArraySize = 1;
 	bufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	bufferDesc.BindFlags = D3D11_BIND_RENDER_TARGET;
+	bufferDesc.BindFlags = D3D11_BIND_RENDER_TARGET || D3D11_BIND_SHADER_RESOURCE;
 	bufferDesc.CPUAccessFlags = 0;
 	bufferDesc.MiscFlags = 0;
 	bufferDesc.SampleDesc.Count = 1;
 	bufferDesc.SampleDesc.Quality = 0;
+
+	ID3D11Texture2D* colorBufferTexture;
+	device->CreateTexture2D(&bufferDesc, 0, &colorBufferTexture);
+	device->CreateRenderTargetView(
+		colorBufferTexture,
+		0,
+		&colorRTV);
+	device->CreateShaderResourceView(
+		colorBufferTexture,
+		0,
+		&colorSRV);
+	colorBufferTexture->Release();
 
 	ID3D11Texture2D* normalBufferTexture;
 	device->CreateTexture2D(&bufferDesc, 0, &normalBufferTexture);
@@ -252,6 +276,10 @@ HRESULT DXCore::InitDirectX()
 		normalBufferTexture,
 		0,
 		&normalRTV);
+	device->CreateShaderResourceView(
+		normalBufferTexture,
+		0,
+		&normalSRV);
 	normalBufferTexture->Release();
 
 	ID3D11Texture2D* worldBufferTexture;
@@ -260,9 +288,25 @@ HRESULT DXCore::InitDirectX()
 		worldBufferTexture,
 		0,
 		&worldPosRTV);
+	device->CreateShaderResourceView(
+		worldBufferTexture,
+		0,
+		&worldPosSRV);
 	worldBufferTexture->Release();
 
-	GBuffer[0] = backBufferRTV;
+	ID3D11Texture2D* lightBufferTexture;
+	device->CreateTexture2D(&bufferDesc, 0, &lightBufferTexture);
+	device->CreateRenderTargetView(
+		lightBufferTexture,
+		0,
+		&lightsRTV);
+	device->CreateShaderResourceView(
+		lightBufferTexture,
+		0,
+		&lightsSRV);
+	lightBufferTexture->Release();
+
+	GBuffer[0] = colorRTV;
 	GBuffer[1] = normalRTV;
 	GBuffer[2] = worldPosRTV;
 
@@ -318,9 +362,11 @@ void DXCore::OnResize()
 {
 	// Release existing DirectX views and buffers
 	if (depthStencilView) { depthStencilView->Release(); }
+	if (colorRTV) { colorRTV->Release(); }
 	if (backBufferRTV) { backBufferRTV->Release(); }
 	if (normalRTV) { normalRTV->Release(); }
 	if (worldPosRTV) { worldPosRTV->Release(); }
+	if (lightsRTV) { lightsRTV->Release(); }
 
 	// Resize the underlying swap chain buffers
 	swapChain->ResizeBuffers(
