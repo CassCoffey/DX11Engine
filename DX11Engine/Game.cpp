@@ -56,7 +56,11 @@ Game::~Game()
 	delete skyboxPS;
 	delete skyboxVS;
 
+	delete combineVS;
+	delete combinePS;
+
 	delete lightPS;
+	delete lightVS;
 
 	delete camera;
 
@@ -230,6 +234,15 @@ void Game::LoadShaders()
 
 	lightPS = new SimplePixelShader(device, context);
 	lightPS->LoadShaderFile(L"LightsPS.cso");
+
+	lightVS = new SimpleVertexShader(device, context);
+	lightVS->LoadShaderFile(L"LightsVS.cso");
+
+	combineVS = new SimpleVertexShader(device, context);
+	combineVS->LoadShaderFile(L"CombineVS.cso");
+
+	combinePS = new SimplePixelShader(device, context);
+	combinePS->LoadShaderFile(L"CombinePS.cso");
 }
 
 
@@ -303,15 +316,19 @@ void Game::CreateBasicGeometry()
 
 void Game::CreateEntities()
 {
+	Entity* temp0 = new Entity(cube, stoneMat, worldMatrix, XMFLOAT3(0, -1, 0), XMFLOAT3(0, 0, 0), XMFLOAT3(25, 1, 25));
+	entities.push_back(temp0);
 	Entity* temp1 = new Entity(cube, stoneMat, worldMatrix, XMFLOAT3(0, 0, 0), XMFLOAT3(0, 0, 0), XMFLOAT3(1, 1, 1));
 	entities.push_back(temp1);
 	Entity* temp2 = new Entity(sphere, stoneMat, worldMatrix, XMFLOAT3(-3, 0, 0), XMFLOAT3(0, 0, 0), XMFLOAT3(1, 1, 1));
 	entities.push_back(temp2);
+	Entity* temp3 = new Entity(cube, stoneMat, worldMatrix, XMFLOAT3(0, 0, 10), XMFLOAT3(0, 0, 0), XMFLOAT3(1, 1, 1));
+	entities.push_back(temp3);
 }
 
 void Game::CreateLights()
 {
-	PointLight* temp1 = new PointLight(worldMatrix, sphere, vertexShader, lightPS, XMFLOAT4(+0.2f, +0.2f, +0.2f, +1.0f), XMFLOAT4(+0.4f, +0.4f, +1.0f, +1.0f), XMFLOAT3(+1.0f, -1.0f, +1.0f), XMFLOAT3(0, 0, 0), XMFLOAT3(+1.0f, +1.0f, +1.0f));
+	PointLight* temp1 = new PointLight(worldMatrix, sphere, skybox, lightVS, lightPS, sampleState, XMFLOAT4(+0.2f, +0.2f, +0.2f, +1.0f), XMFLOAT4(+0.4f, +0.4f, +1.0f, +1.0f), XMFLOAT3(-1.0f, 0.0f, -1.0f), XMFLOAT3(0, 0, 0), XMFLOAT3(+1.0f, +1.0f, +1.0f));
 	pLights.push_back(temp1);
 }
 
@@ -345,8 +362,8 @@ void Game::Update(float deltaTime, float totalTime)
 	if (GetAsyncKeyState(VK_ESCAPE))
 		Quit();
 
-	entities[0]->rotation.y = totalTime / 2;
 	entities[1]->rotation.y = totalTime / 2;
+	entities[2]->rotation.y = totalTime / 2;
 
 	emitter->Update(deltaTime);
 
@@ -360,9 +377,8 @@ void Game::Draw(float deltaTime, float totalTime)
 {
 	GBuffer[0] = colorRTV;
 	GBuffer[1] = normalRTV;
-	GBuffer[2] = worldPosRTV;
 
-	context->OMSetRenderTargets(3, GBuffer, depthStencilView);
+	context->OMSetRenderTargets(2, GBuffer, depthStencilView);
 
 	// Background color (Black in this case) for clearing
 	const float color[4] = { 0,0,0,0 };
@@ -373,7 +389,6 @@ void Game::Draw(float deltaTime, float totalTime)
 	context->ClearRenderTargetView(backBufferRTV, color);
 	context->ClearRenderTargetView(colorRTV, color);
 	context->ClearRenderTargetView(normalRTV, color);
-	context->ClearRenderTargetView(worldPosRTV, color);
 	context->ClearRenderTargetView(lightsRTV, color);
 	context->ClearDepthStencilView(
 		depthStencilView,
@@ -385,6 +400,9 @@ void Game::Draw(float deltaTime, float totalTime)
 	{
 		entities[i]->Draw(context, camera->projMat, camera->viewMat);
 	}
+
+	ID3D11ShaderResourceView* nullSRVs[16] = {};
+	context->PSSetShaderResources(0, 16, nullSRVs);
 
 	RenderLights();
 
@@ -446,29 +464,46 @@ void Game::RenderLights()
 {
 	GBuffer[0] = lightsRTV;
 	GBuffer[1] = 0;
-	GBuffer[2] = 0;
 
-	context->OMSetRenderTargets(3, GBuffer, depthStencilView);
+	context->OMSetRenderTargets(2, GBuffer, nullptr);
 
 	context->OMSetDepthStencilState(lightDepthState, 0);
 
 	for (int i = 0; i < pLights.size(); i++)
 	{
-		pLights[i]->Draw(context, camera, normalSRV, worldPosSRV);
+		pLights[i]->Draw(context, camera, normalSRV, depthSRV);
 	}
+
+	ID3D11ShaderResourceView* nullSRVs[16] = {};
+	context->PSSetShaderResources(0, 16, nullSRVs);
 }
 
 void Game::Combine()
 {
 	GBuffer[0] = backBufferRTV;
 	GBuffer[1] = 0;
-	GBuffer[2] = 0;
 
-	context->OMSetRenderTargets(3, GBuffer, depthStencilView);
+	context->OMSetRenderTargets(2, GBuffer, depthStencilView);
+
+	combineVS->SetShader();
+
+	combinePS->SetShaderResourceView("colorTexture", colorSRV);
+	combinePS->SetShaderResourceView("lightTexture", lightsSRV);
+	combinePS->SetSamplerState("BasicSampler", sampleState);
+	combinePS->CopyAllBufferData();
+	combinePS->SetShader();
+
+	context->DrawIndexed(3, 0, 0);
+
+	ID3D11ShaderResourceView* nullSRVs[16] = {};
+	context->PSSetShaderResources(0, 16, nullSRVs);
 }
 
 void Game::ClearStates()
 {
+	ID3D11ShaderResourceView* nullSRVs[16] = {};
+	context->PSSetShaderResources(0, 16, nullSRVs);
+
 	// Reset states
 	context->RSSetState(0);
 	context->OMSetDepthStencilState(0, 0);

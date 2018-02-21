@@ -1,6 +1,6 @@
 #include "PointLight.h"
 
-PointLight::PointLight(XMFLOAT4X4 world, Mesh* iMesh, SimpleVertexShader* vs, SimplePixelShader* ps, XMFLOAT4 ambient, XMFLOAT4 diffuse, XMFLOAT3 pos, XMFLOAT3 rot, XMFLOAT3 scale) :
+PointLight::PointLight(XMFLOAT4X4 world, Mesh* iMesh, ID3D11ShaderResourceView* sky, SimpleVertexShader* vs, SimplePixelShader* ps, ID3D11SamplerState* sample, XMFLOAT4 ambient, XMFLOAT4 diffuse, XMFLOAT3 pos, XMFLOAT3 rot, XMFLOAT3 scale) :
 	GameObject(world, pos, rot, scale)
 {
 	mesh = iMesh;
@@ -9,6 +9,8 @@ PointLight::PointLight(XMFLOAT4X4 world, Mesh* iMesh, SimpleVertexShader* vs, Si
 	position = pos;
 	vertexShader = vs;
 	pixelShader = ps;
+	skybox = sky;
+	sampler = sample;
 }
 
 PointLight::~PointLight()
@@ -16,22 +18,33 @@ PointLight::~PointLight()
 
 }
 
-void PointLight::PrepareShader(Camera* camera, ID3D11ShaderResourceView* normal, ID3D11ShaderResourceView* worldPos)
+void PointLight::PrepareShader(Camera* camera, ID3D11ShaderResourceView* normal, ID3D11ShaderResourceView* depth)
 {
-	// Send data to shader variables
-	//  - Do this ONCE PER OBJECT you're drawing
-	//  - This is actually a complex process of copying data to a local buffer
-	//    and then copying that entire buffer to the GPU.  
-	//  - The "SimpleShader" class handles all of that for you.
+	XMMATRIX inView = XMLoadFloat4x4(&(camera->viewMat));
+	inView = XMMatrixInverse(nullptr, inView);
+	XMMATRIX inProj = XMLoadFloat4x4(&(camera->projMat));
+	inProj = XMMatrixInverse(nullptr, inProj);
+	
+	DirectX::XMFLOAT4X4 inverseView = {};
+	XMStoreFloat4x4(&inverseView, inView);
+	DirectX::XMFLOAT4X4 inverseProjection = {};
+	XMStoreFloat4x4(&inverseProjection, inProj);
+
+	info = {ambientColor, diffuseColor, position};
+
 	vertexShader->SetMatrix4x4("view", camera->viewMat);
 	vertexShader->SetMatrix4x4("projection", camera->projMat);
 	vertexShader->SetMatrix4x4("world", worldMatrix);
 
 	// Texture Stuff
-
+	pixelShader->SetSamplerState("basicSampler", sampler);
+	pixelShader->SetData("PointLight", &info, sizeof(PointLightShaderInfo));
 	pixelShader->SetFloat3("CameraPosition", camera->position);
-	pixelShader->SetShaderResourceView("NormalBuffer", normal);
-	pixelShader->SetShaderResourceView("WorldPosBuffer", worldPos);
+	pixelShader->SetShaderResourceView("normalBuffer", normal);
+	pixelShader->SetShaderResourceView("depthBuffer", depth);
+	pixelShader->SetShaderResourceView("SkyTexture", skybox);
+	pixelShader->SetMatrix4x4("inView", inverseView);
+	pixelShader->SetMatrix4x4("inProjection", inverseProjection);
 
 	// Set the vertex and pixel shaders to use for the next Draw() command
 	//  - These don't technically need to be set every frame...YET
@@ -47,11 +60,11 @@ void PointLight::PrepareShader(Camera* camera, ID3D11ShaderResourceView* normal,
 	pixelShader->CopyAllBufferData();
 }
 
-void PointLight::Draw(ID3D11DeviceContext * context, Camera* camera, ID3D11ShaderResourceView* normal, ID3D11ShaderResourceView* worldPos)
+void PointLight::Draw(ID3D11DeviceContext * context, Camera* camera, ID3D11ShaderResourceView* normal, ID3D11ShaderResourceView* depth)
 {
 	GameObject::Draw(context, camera->projMat, camera->viewMat);
 
-	PrepareShader(camera, normal, worldPos);
+	PrepareShader(camera, normal, depth);
 
 	UINT stride = sizeof(Vertex);
 	UINT offset = 0;

@@ -59,8 +59,7 @@ DXCore::DXCore(
 	backBufferRTV = 0;
 	normalRTV = 0;
 	normalSRV = 0;
-	worldPosRTV = 0;
-	worldPosSRV = 0;
+	depthSRV = 0;
 	lightsRTV = 0;
 	lightsSRV = 0;
 	depthStencilView = 0;
@@ -83,8 +82,7 @@ DXCore::~DXCore()
 	if (backBufferRTV) { backBufferRTV->Release();}
 	if (normalRTV) { normalRTV->Release(); }
 	if (normalSRV) { normalSRV->Release(); }
-	if (worldPosRTV) { worldPosRTV->Release(); }
-	if (worldPosSRV) { worldPosSRV->Release(); }
+	if (depthSRV) { depthSRV->Release(); }
 	if (lightsRTV) { lightsRTV->Release(); }
 	if (lightsSRV) { lightsSRV->Release(); }
 
@@ -244,7 +242,7 @@ HRESULT DXCore::InitDirectX()
 		&backBufferRTV);
 	backBufferTexture->Release();
 
-	// Set up the description of the texture to use for the depth buffer
+	// Set up the description of the texture to use for the buffers
 	D3D11_TEXTURE2D_DESC bufferDesc = {};
 	bufferDesc.Width = width;
 	bufferDesc.Height = height;
@@ -282,18 +280,6 @@ HRESULT DXCore::InitDirectX()
 		&normalSRV);
 	normalBufferTexture->Release();
 
-	ID3D11Texture2D* worldBufferTexture;
-	device->CreateTexture2D(&bufferDesc, 0, &worldBufferTexture);
-	device->CreateRenderTargetView(
-		worldBufferTexture,
-		0,
-		&worldPosRTV);
-	device->CreateShaderResourceView(
-		worldBufferTexture,
-		0,
-		&worldPosSRV);
-	worldBufferTexture->Release();
-
 	ID3D11Texture2D* lightBufferTexture;
 	device->CreateTexture2D(&bufferDesc, 0, &lightBufferTexture);
 	device->CreateRenderTargetView(
@@ -308,7 +294,6 @@ HRESULT DXCore::InitDirectX()
 
 	GBuffer[0] = colorRTV;
 	GBuffer[1] = normalRTV;
-	GBuffer[2] = worldPosRTV;
 
 	// Set up the description of the texture to use for the depth buffer
 	D3D11_TEXTURE2D_DESC depthStencilDesc = {};
@@ -316,24 +301,37 @@ HRESULT DXCore::InitDirectX()
 	depthStencilDesc.Height				= height;
 	depthStencilDesc.MipLevels			= 1;
 	depthStencilDesc.ArraySize			= 1;
-	depthStencilDesc.Format				= DXGI_FORMAT_D24_UNORM_S8_UINT;
+	depthStencilDesc.Format				= DXGI_FORMAT_R24G8_TYPELESS;
 	depthStencilDesc.Usage				= D3D11_USAGE_DEFAULT;
-	depthStencilDesc.BindFlags			= D3D11_BIND_DEPTH_STENCIL;
+	depthStencilDesc.BindFlags			= D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
 	depthStencilDesc.CPUAccessFlags		= 0;
 	depthStencilDesc.MiscFlags			= 0;
 	depthStencilDesc.SampleDesc.Count	= 1;
 	depthStencilDesc.SampleDesc.Quality = 0;
 
+	D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc;
+	dsvDesc.Flags = 0;
+	dsvDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+	dsvDesc.Texture2D.MipSlice = 0;
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC dsrDesc;
+	dsrDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+	dsrDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	dsrDesc.Texture2D.MostDetailedMip = 0;
+	dsrDesc.Texture2D.MipLevels = -1;
+
 	// Create the depth buffer and its view, then 
 	// release our reference to the texture
 	ID3D11Texture2D* depthBufferTexture;
 	device->CreateTexture2D(&depthStencilDesc, 0, &depthBufferTexture);
-	device->CreateDepthStencilView(depthBufferTexture, 0, &depthStencilView);
+	device->CreateDepthStencilView(depthBufferTexture, &dsvDesc, &depthStencilView);
+	device->CreateShaderResourceView(depthBufferTexture, &dsrDesc,	&depthSRV);
 	depthBufferTexture->Release();
 
 	// Bind the views to the pipeline, so rendering properly 
 	// uses their underlying textures
-	context->OMSetRenderTargets(3, GBuffer, depthStencilView);
+	context->OMSetRenderTargets(2, GBuffer, depthStencilView);
 
 	// Lastly, set up a viewport so we render into
 	// to correct portion of the window
@@ -365,7 +363,6 @@ void DXCore::OnResize()
 	if (colorRTV) { colorRTV->Release(); }
 	if (backBufferRTV) { backBufferRTV->Release(); }
 	if (normalRTV) { normalRTV->Release(); }
-	if (worldPosRTV) { worldPosRTV->Release(); }
 	if (lightsRTV) { lightsRTV->Release(); }
 
 	// Resize the underlying swap chain buffers
@@ -384,25 +381,37 @@ void DXCore::OnResize()
 	backBufferTexture->Release();
 
 	// Set up the description of the texture to use for the depth buffer
-	D3D11_TEXTURE2D_DESC depthStencilDesc;
-	depthStencilDesc.Width				= width;
-	depthStencilDesc.Height				= height;
-	depthStencilDesc.MipLevels			= 1;
-	depthStencilDesc.ArraySize			= 1;
-	depthStencilDesc.Format				= DXGI_FORMAT_D24_UNORM_S8_UINT;
-	depthStencilDesc.Usage				= D3D11_USAGE_DEFAULT;
-	depthStencilDesc.BindFlags			= D3D11_BIND_DEPTH_STENCIL;
-;
-	depthStencilDesc.CPUAccessFlags		= 0;
-	depthStencilDesc.MiscFlags			= 0;
-	depthStencilDesc.SampleDesc.Count	= 1;
+	D3D11_TEXTURE2D_DESC depthStencilDesc = {};
+	depthStencilDesc.Width = width;
+	depthStencilDesc.Height = height;
+	depthStencilDesc.MipLevels = 1;
+	depthStencilDesc.ArraySize = 1;
+	depthStencilDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
+	depthStencilDesc.Usage = D3D11_USAGE_DEFAULT;
+	depthStencilDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
+	depthStencilDesc.CPUAccessFlags = 0;
+	depthStencilDesc.MiscFlags = 0;
+	depthStencilDesc.SampleDesc.Count = 1;
 	depthStencilDesc.SampleDesc.Quality = 0;
+
+	D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc;
+	dsvDesc.Flags = 0;
+	dsvDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+	dsvDesc.Texture2D.MipSlice = 0;
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC dsrDesc;
+	dsrDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+	dsrDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	dsrDesc.Texture2D.MostDetailedMip = 0;
+	dsrDesc.Texture2D.MipLevels = -1;
 
 	// Create the depth buffer and its view, then 
 	// release our reference to the texture
 	ID3D11Texture2D* depthBufferTexture;
 	device->CreateTexture2D(&depthStencilDesc, 0, &depthBufferTexture);
-	device->CreateDepthStencilView(depthBufferTexture, 0, &depthStencilView);
+	device->CreateDepthStencilView(depthBufferTexture, &dsvDesc, &depthStencilView);
+	device->CreateShaderResourceView(depthBufferTexture, &dsrDesc, &depthSRV);
 	depthBufferTexture->Release();
 
 	// Bind the views to the pipeline, so rendering properly 

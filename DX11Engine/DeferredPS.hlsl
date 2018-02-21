@@ -18,8 +18,8 @@ struct VertexToPixel
 	float4 position		: SV_POSITION;
 	float3 normal		: NORMAL;
 	float3 tangent		: TANGENT;
-	float2 uv			: TEXCOORD;
-	float3 worldPos		: POSITION;
+	float2 uv			: TEXCOORD0;
+	float depth			: TEXCOORD1;
 };
 
 // Constant Buffer
@@ -37,7 +37,7 @@ struct PSOutput
 {
 	float4 color	: SV_TARGET0;
 	float4 normals	: SV_TARGET1;
-	float4 worldPos	: SV_TARGET2;
+	float4 depth	: SV_TARGET2;
 };
 
 // --------------------------------------------------------
@@ -69,7 +69,7 @@ PSOutput main(VertexToPixel input)
 
 	OUT.color = surfaceColor;
 
-	OUT.worldPos = float4(input.worldPos, 1);
+	OUT.depth = float4(input.depth.x, input.depth.x, input.depth.x, 1);
 
 	return OUT;
 }
