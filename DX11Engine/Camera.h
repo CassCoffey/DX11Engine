@@ -17,7 +17,9 @@ public:
 	void GenerateProjection(float width, float height);
 
 	XMFLOAT4X4 viewMat;
+	XMFLOAT4X4 inverseViewMat;
 	XMFLOAT4X4 projMat;
+	XMFLOAT4X4 inverseProjMat;
 
 	XMFLOAT3 position;
 	XMFLOAT3 direction;

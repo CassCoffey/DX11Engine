@@ -77,6 +77,8 @@ Game::~Game()
 	skyboxRasterState->Release();
 	skyboxDepthState->Release();
 	lightDepthState->Release();
+	lightBlendState->Release();
+	combineDepthState->Release();
 
 	for (int i = 0; i < entities.size(); i++)
 	{
@@ -145,8 +147,7 @@ void Game::Init()
 
 	// Default Blend
 	D3D11_BLEND_DESC blendState = {};
-	ZeroMemory(&blendState, sizeof(D3D11_BLEND_DESC));
-	blendState.RenderTarget[0].BlendEnable = FALSE;
+	blendState.RenderTarget[0].BlendEnable = false;
 	blendState.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 	device->CreateBlendState(&blendState, &noBlendState);
 
@@ -190,12 +191,31 @@ void Game::Init()
 	skyboxDsDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
 	device->CreateDepthStencilState(&skyboxDsDesc, &skyboxDepthState);
 
+	// Blend for lights (additive)
+	D3D11_BLEND_DESC addBlend = {};
+	addBlend.RenderTarget[0].BlendEnable = true;
+	addBlend.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+	addBlend.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
+	addBlend.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
+	addBlend.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+	addBlend.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+	addBlend.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+	addBlend.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+	device->CreateBlendState(&addBlend, &lightBlendState);
+
 	// A depth state for the lights
 	D3D11_DEPTH_STENCIL_DESC lightDsDesc = {};
-	lightDsDesc.DepthEnable = false;
+	lightDsDesc.DepthEnable = true;
 	lightDsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-	lightDsDesc.DepthFunc = D3D11_COMPARISON_NEVER;
+	lightDsDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
 	device->CreateDepthStencilState(&lightDsDesc, &lightDepthState);
+
+	// A depth state for the combine
+	D3D11_DEPTH_STENCIL_DESC combineDsDesc = {};
+	particleDsDesc.DepthEnable = false;
+	particleDsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO; // Turns off depth writing
+	particleDsDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+	device->CreateDepthStencilState(&combineDsDesc, &combineDepthState);
 
 	// Tell the input assembler stage of the pipeline what kind of
 	// geometric primitives (points, lines or triangles) we want to draw.  
@@ -328,8 +348,11 @@ void Game::CreateEntities()
 
 void Game::CreateLights()
 {
-	PointLight* temp1 = new PointLight(worldMatrix, sphere, skybox, lightVS, lightPS, sampleState, XMFLOAT4(+0.2f, +0.2f, +0.2f, +1.0f), XMFLOAT4(+0.4f, +0.4f, +1.0f, +1.0f), XMFLOAT3(-1.0f, 0.0f, -1.0f), XMFLOAT3(0, 0, 0), XMFLOAT3(+1.0f, +1.0f, +1.0f));
+	PointLight* temp1 = new PointLight(worldMatrix, sphere, skybox, lightVS, lightPS, sampleState, XMFLOAT4(+0.1f, +0.1f, +0.1f, +1.0f), XMFLOAT4(+0.4f, +0.4f, +1.0f, +1.0f), XMFLOAT3(-1.0f, 0.0f, -1.0f), XMFLOAT3(0, 0, 0), 10.0f);
 	pLights.push_back(temp1);
+
+	PointLight* temp2 = new PointLight(worldMatrix, sphere, skybox, lightVS, lightPS, sampleState, XMFLOAT4(+0.1f, +0.1f, +0.1f, +1.0f), XMFLOAT4(+1.0f, +0.2f, +0.2f, +1.0f), XMFLOAT3(0.0f, 0.0f, 5.0f), XMFLOAT3(0, 0, 0), 7.0f);
+	pLights.push_back(temp2);
 }
 
 
@@ -395,18 +418,26 @@ void Game::Draw(float deltaTime, float totalTime)
 		D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
 		1.0f,
 		0);
+	context->ClearDepthStencilView(
+		lightingDepthStencilView,
+		D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
+		1.0f,
+		0);
 
 	for (int i = 0; i < entities.size(); i++)
 	{
 		entities[i]->Draw(context, camera->projMat, camera->viewMat);
 	}
 
-	ID3D11ShaderResourceView* nullSRVs[16] = {};
-	context->PSSetShaderResources(0, 16, nullSRVs);
+	ClearStates();
 
 	RenderLights();
 
+	ClearStates();
+
 	Combine();
+
+	ClearStates();
 
 	RenderSkybox();
 
@@ -429,8 +460,6 @@ void Game::RenderParticles()
 	context->OMSetDepthStencilState(particleDepthState, 0);			// No depth WRITING
 
 	emitter->Draw(context, camera);
-
-	context->OMSetBlendState(noBlendState, 0, 0xffffffff);  // no blending
 }
 
 void Game::RenderSkybox()
@@ -467,15 +496,15 @@ void Game::RenderLights()
 
 	context->OMSetRenderTargets(2, GBuffer, nullptr);
 
+	float blend[4] = { 1,1,1,1 };
+	context->OMSetBlendState(lightBlendState, blend, 0xffffffff);
+	context->RSSetState(skyboxRasterState);
 	context->OMSetDepthStencilState(lightDepthState, 0);
 
 	for (int i = 0; i < pLights.size(); i++)
 	{
 		pLights[i]->Draw(context, camera, normalSRV, depthSRV);
 	}
-
-	ID3D11ShaderResourceView* nullSRVs[16] = {};
-	context->PSSetShaderResources(0, 16, nullSRVs);
 }
 
 void Game::Combine()
@@ -484,6 +513,8 @@ void Game::Combine()
 	GBuffer[1] = 0;
 
 	context->OMSetRenderTargets(2, GBuffer, depthStencilView);
+
+	context->OMSetDepthStencilState(combineDepthState, 0);
 
 	combineVS->SetShader();
 
@@ -494,9 +525,6 @@ void Game::Combine()
 	combinePS->SetShader();
 
 	context->DrawIndexed(3, 0, 0);
-
-	ID3D11ShaderResourceView* nullSRVs[16] = {};
-	context->PSSetShaderResources(0, 16, nullSRVs);
 }
 
 void Game::ClearStates()
@@ -507,7 +535,7 @@ void Game::ClearStates()
 	// Reset states
 	context->RSSetState(0);
 	context->OMSetDepthStencilState(0, 0);
-	context->RSSetState(0);
+	context->OMSetBlendState(noBlendState, 0, 0xffffffff);  // no blending
 }
 
 

@@ -81,11 +81,13 @@ private:
 	SimplePixelShader* lightPS;
 	SimpleVertexShader* lightVS;
 	std::vector<PointLight*> pLights;
+	ID3D11BlendState* lightBlendState;
 	ID3D11DepthStencilState* lightDepthState;
 
 	// Combination Stage
 	SimpleVertexShader* combineVS;
 	SimplePixelShader* combinePS;
+	ID3D11DepthStencilState* combineDepthState;
 
 	// Entities
 	std::vector<Entity*> entities;

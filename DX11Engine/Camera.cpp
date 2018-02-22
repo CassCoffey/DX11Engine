@@ -30,6 +30,7 @@ void Camera::Update(float deltaTime)
 	XMVECTOR pos = XMLoadFloat3(&position);
 
 	XMStoreFloat4x4(&viewMat, XMMatrixTranspose(XMMatrixLookToLH(pos, dir, up)));
+	XMStoreFloat4x4(&inverseViewMat, XMMatrixTranspose(XMMatrixInverse(nullptr, XMMatrixLookToLH(pos, dir, up))));
 }
 
 void Camera::MouseRotate(float x, float y)
@@ -52,6 +53,7 @@ void Camera::GenerateProjection(float width, float height)
 		0.1f,						// Near clip plane distance
 		100.0f);					// Far clip plane distance
 	XMStoreFloat4x4(&projMat, XMMatrixTranspose(P)); // Transpose for HLSL!
+	XMStoreFloat4x4(&inverseProjMat, XMMatrixTranspose(XMMatrixInverse(nullptr, P)));
 }
 
 void Camera::CheckInput(float deltaTime)

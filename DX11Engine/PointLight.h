@@ -12,12 +12,13 @@ struct PointLightShaderInfo
 	DirectX::XMFLOAT4 AmbientColor;
 	DirectX::XMFLOAT4 DiffuseColor;
 	DirectX::XMFLOAT3 Position;
+	float Range;
 };
 
 class PointLight : public GameObject
 {
 public:
-	PointLight(XMFLOAT4X4 iWorld, Mesh* iMesh, ID3D11ShaderResourceView* sky, SimpleVertexShader* vs, SimplePixelShader* ps, ID3D11SamplerState* sample, XMFLOAT4 ambient, XMFLOAT4 diffuse, XMFLOAT3 pos, XMFLOAT3 rot, XMFLOAT3 scale);
+	PointLight(XMFLOAT4X4 iWorld, Mesh* iMesh, ID3D11ShaderResourceView* sky, SimpleVertexShader* vs, SimplePixelShader* ps, ID3D11SamplerState* sample, XMFLOAT4 ambient, XMFLOAT4 diffuse, XMFLOAT3 pos, XMFLOAT3 rot, float iRange);
 	~PointLight();
 
 	void PrepareShader(Camera* camera, ID3D11ShaderResourceView* normal, ID3D11ShaderResourceView* depth);
@@ -30,6 +31,7 @@ public:
 	XMFLOAT4 ambientColor;
 	XMFLOAT4 diffuseColor;
 	XMFLOAT3 position;
+	float range;
 	ID3D11ShaderResourceView* skybox;
 	PointLightShaderInfo info;
 };

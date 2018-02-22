@@ -76,6 +76,7 @@ protected:
 	ID3D11ShaderResourceView* lightsSRV;
 	ID3D11DepthStencilView* depthStencilView;
 	ID3D11ShaderResourceView* depthSRV;
+	ID3D11DepthStencilView* lightingDepthStencilView;
 
 	ID3D11RenderTargetView* GBuffer[2];
 

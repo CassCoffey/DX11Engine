@@ -1,7 +1,7 @@
 #include "PointLight.h"
 
-PointLight::PointLight(XMFLOAT4X4 world, Mesh* iMesh, ID3D11ShaderResourceView* sky, SimpleVertexShader* vs, SimplePixelShader* ps, ID3D11SamplerState* sample, XMFLOAT4 ambient, XMFLOAT4 diffuse, XMFLOAT3 pos, XMFLOAT3 rot, XMFLOAT3 scale) :
-	GameObject(world, pos, rot, scale)
+PointLight::PointLight(XMFLOAT4X4 world, Mesh* iMesh, ID3D11ShaderResourceView* sky, SimpleVertexShader* vs, SimplePixelShader* ps, ID3D11SamplerState* sample, XMFLOAT4 ambient, XMFLOAT4 diffuse, XMFLOAT3 pos, XMFLOAT3 rot, float iRange) :
+	GameObject(world, pos, rot, XMFLOAT3(2 * iRange, 2 * iRange, 2 * iRange))
 {
 	mesh = iMesh;
 	ambientColor = ambient;
@@ -11,6 +11,7 @@ PointLight::PointLight(XMFLOAT4X4 world, Mesh* iMesh, ID3D11ShaderResourceView* 
 	pixelShader = ps;
 	skybox = sky;
 	sampler = sample;
+	range = iRange;
 }
 
 PointLight::~PointLight()
@@ -20,17 +21,7 @@ PointLight::~PointLight()
 
 void PointLight::PrepareShader(Camera* camera, ID3D11ShaderResourceView* normal, ID3D11ShaderResourceView* depth)
 {
-	XMMATRIX inView = XMLoadFloat4x4(&(camera->viewMat));
-	inView = XMMatrixInverse(nullptr, inView);
-	XMMATRIX inProj = XMLoadFloat4x4(&(camera->projMat));
-	inProj = XMMatrixInverse(nullptr, inProj);
-	
-	DirectX::XMFLOAT4X4 inverseView = {};
-	XMStoreFloat4x4(&inverseView, inView);
-	DirectX::XMFLOAT4X4 inverseProjection = {};
-	XMStoreFloat4x4(&inverseProjection, inProj);
-
-	info = {ambientColor, diffuseColor, position};
+	info = {ambientColor, diffuseColor, position, range};
 
 	vertexShader->SetMatrix4x4("view", camera->viewMat);
 	vertexShader->SetMatrix4x4("projection", camera->projMat);
@@ -38,13 +29,13 @@ void PointLight::PrepareShader(Camera* camera, ID3D11ShaderResourceView* normal,
 
 	// Texture Stuff
 	pixelShader->SetSamplerState("basicSampler", sampler);
-	pixelShader->SetData("PointLight", &info, sizeof(PointLightShaderInfo));
+	pixelShader->SetData("light", &info, sizeof(PointLightShaderInfo));
 	pixelShader->SetFloat3("CameraPosition", camera->position);
 	pixelShader->SetShaderResourceView("normalBuffer", normal);
 	pixelShader->SetShaderResourceView("depthBuffer", depth);
 	pixelShader->SetShaderResourceView("SkyTexture", skybox);
-	pixelShader->SetMatrix4x4("inView", inverseView);
-	pixelShader->SetMatrix4x4("inProjection", inverseProjection);
+	pixelShader->SetMatrix4x4("inView", camera->inverseViewMat);
+	pixelShader->SetMatrix4x4("inProjection", camera->inverseProjMat);
 
 	// Set the vertex and pixel shaders to use for the next Draw() command
 	//  - These don't technically need to be set every frame...YET

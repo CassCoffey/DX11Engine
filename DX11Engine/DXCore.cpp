@@ -63,6 +63,7 @@ DXCore::DXCore(
 	lightsRTV = 0;
 	lightsSRV = 0;
 	depthStencilView = 0;
+	lightingDepthStencilView = 0;
 
 	// Query performance counter for accurate timing information
 	__int64 perfFreq;
@@ -77,6 +78,7 @@ DXCore::~DXCore()
 {
 	// Release all DirectX resources
 	if (depthStencilView) { depthStencilView->Release(); }
+	if (lightingDepthStencilView) { lightingDepthStencilView->Release(); }
 	if (colorRTV) { colorRTV->Release(); }
 	if (colorSRV) { colorSRV->Release(); }
 	if (backBufferRTV) { backBufferRTV->Release();}
@@ -329,6 +331,11 @@ HRESULT DXCore::InitDirectX()
 	device->CreateShaderResourceView(depthBufferTexture, &dsrDesc,	&depthSRV);
 	depthBufferTexture->Release();
 
+	ID3D11Texture2D* lightingDepthBufferTexture;
+	device->CreateTexture2D(&depthStencilDesc, 0, &lightingDepthBufferTexture);
+	device->CreateDepthStencilView(lightingDepthBufferTexture, &dsvDesc, &lightingDepthStencilView);
+	lightingDepthBufferTexture->Release();
+
 	// Bind the views to the pipeline, so rendering properly 
 	// uses their underlying textures
 	context->OMSetRenderTargets(2, GBuffer, depthStencilView);
@@ -360,6 +367,7 @@ void DXCore::OnResize()
 {
 	// Release existing DirectX views and buffers
 	if (depthStencilView) { depthStencilView->Release(); }
+	if (lightingDepthStencilView) { lightingDepthStencilView->Release(); }
 	if (colorRTV) { colorRTV->Release(); }
 	if (backBufferRTV) { backBufferRTV->Release(); }
 	if (normalRTV) { normalRTV->Release(); }

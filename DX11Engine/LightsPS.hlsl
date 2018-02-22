@@ -21,6 +21,7 @@ struct PointLight
 	float4 ambientColor;
 	float4 diffuseColor;
 	float3 position;
+	float range;
 };
 
 // Constant Buffer
@@ -40,16 +41,23 @@ cbuffer externalData : register(b0)
 float4 calculatePointLight(float3 normal, float3 worldPos, PointLight pLight)
 {
 	float3 dirToPointLight = normalize(pLight.position - worldPos);
-
+	
 	float amount = saturate(dot(normal, dirToPointLight));
-
+	
 	float3 refl = reflect(-dirToPointLight, normal);
+	
+	float distance = length(pLight.position - worldPos);
 
 	float3 dirToCamera = normalize(CameraPosition - worldPos);
-
+	
 	float specular = pow(saturate(dot(refl, dirToCamera)), 64);
+	
+	float atten = clamp(1.0 - distance*distance / (pLight.range*pLight.range), 0.0, 1.0);
+	atten *= atten;
 
-	return (pLight.diffuseColor * amount) + pLight.ambientColor + specular;
+	float4 finalLight = (pLight.diffuseColor * amount) + pLight.ambientColor + specular;
+
+	return finalLight * atten;
 }
 
 float4 SkyboxReflection(float3 normal, float3 worldPos)
@@ -64,7 +72,7 @@ float4 SkyboxReflection(float3 normal, float3 worldPos)
 
 float3 WorldPosFromDepth(float depth, float2 texCoord) 
 {
-	float z = depth * 2.0 - 1.0;
+	float z = depth;
 
 	float4 clipSpacePosition = float4(texCoord.x * 2.0 - 1.0, -(texCoord.y * 2.0 - 1.0), z, 1.0);
 	float4 viewSpacePosition = mul(clipSpacePosition, inProjection);
@@ -86,5 +94,5 @@ float4 main(VertexToPixel input) : SV_TARGET
 
 	float4 lightColor = calculatePointLight(normalBuffer.Sample(basicSampler, screen), worldPos, light);
 
-	return float4(worldPos, 1);
+	return lightColor;
 }
