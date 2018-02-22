@@ -6,7 +6,6 @@ PointLight::PointLight(XMFLOAT4X4 world, Mesh* iMesh, ID3D11ShaderResourceView* 
 	mesh = iMesh;
 	ambientColor = ambient;
 	diffuseColor = diffuse;
-	position = pos;
 	vertexShader = vs;
 	pixelShader = ps;
 	skybox = sky;

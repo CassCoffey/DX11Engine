@@ -30,7 +30,6 @@ public:
 	Mesh* mesh;
 	XMFLOAT4 ambientColor;
 	XMFLOAT4 diffuseColor;
-	XMFLOAT3 position;
 	float range;
 	ID3D11ShaderResourceView* skybox;
 	PointLightShaderInfo info;

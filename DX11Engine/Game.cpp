@@ -388,6 +388,8 @@ void Game::Update(float deltaTime, float totalTime)
 	entities[1]->rotation.y = totalTime / 2;
 	entities[2]->rotation.y = totalTime / 2;
 
+	pLights[1]->SetPosition(sinf(totalTime) * 5.0f, 1.0f, cosf(totalTime) * 5.0f);
+
 	emitter->Update(deltaTime);
 
 	camera->Update(deltaTime);
