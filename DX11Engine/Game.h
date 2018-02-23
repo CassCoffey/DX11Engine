@@ -8,6 +8,7 @@
 #include "SimpleShader.h"
 #include "Camera.h"
 #include "PointLight.h"
+#include "DirectionalLight.h"
 #include "WICTextureLoader.h"
 #include <DirectXMath.h>
 
@@ -78,9 +79,12 @@ private:
 	Mesh* torus;
 
 	// Lights
-	SimplePixelShader* lightPS;
-	SimpleVertexShader* lightVS;
+	SimplePixelShader* pointLightPS;
+	SimpleVertexShader* pointLightVS;
+	SimplePixelShader* dirLightPS;
+	SimpleVertexShader* dirLightVS;
 	std::vector<PointLight*> pLights;
+	std::vector<DirectionalLight*> dLights;
 	ID3D11BlendState* lightBlendState;
 	ID3D11DepthStencilState* lightDepthState;
 

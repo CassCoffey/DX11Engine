@@ -1,23 +1,19 @@
-#include "PointLight.h"
+#include "DirectionalLight.h"
 
-PointLight::PointLight(XMFLOAT4X4 world, Mesh* iMesh, ID3D11ShaderResourceView* sky, SimpleVertexShader* vs, SimplePixelShader* ps, ID3D11SamplerState* sample, XMFLOAT4 ambient, XMFLOAT4 diffuse, XMFLOAT3 pos, XMFLOAT3 rot, float iRange) :
-	Light(world, iMesh, sky, vs, ps, sample, ambient, diffuse, pos, rot, XMFLOAT3(2 * iRange, 2 * iRange, 2 * iRange))
+DirectionalLight::DirectionalLight(XMFLOAT4X4 world, ID3D11ShaderResourceView* sky, SimpleVertexShader* vs, SimplePixelShader* ps, ID3D11SamplerState* sample, XMFLOAT4 ambient, XMFLOAT4 diffuse, XMFLOAT3 pos, XMFLOAT3 rot) :
+	Light(world, nullptr, sky, vs, ps, sample, ambient, diffuse, pos, rot, XMFLOAT3(1, 1, 1))
 {
-	range = iRange;
+	
 }
 
-PointLight::~PointLight()
+DirectionalLight::~DirectionalLight()
 {
 
 }
 
-void PointLight::PrepareShader(Camera* camera, ID3D11ShaderResourceView* normal, ID3D11ShaderResourceView* depth)
+void DirectionalLight::PrepareShader(Camera* camera, ID3D11ShaderResourceView* normal, ID3D11ShaderResourceView* depth)
 {
-	info = {ambientColor, diffuseColor, position, range};
-
-	vertexShader->SetMatrix4x4("view", camera->viewMat);
-	vertexShader->SetMatrix4x4("projection", camera->projMat);
-	vertexShader->SetMatrix4x4("world", worldMatrix);
+	info = { ambientColor, diffuseColor, rotation, 0.0f };
 
 	// Texture Stuff
 	pixelShader->SetSamplerState("basicSampler", sampler);
@@ -41,4 +37,13 @@ void PointLight::PrepareShader(Camera* camera, ID3D11ShaderResourceView* normal,
 	//  - If you skip this, the "SetMatrix" calls above won't make it to the GPU!
 	vertexShader->CopyAllBufferData();
 	pixelShader->CopyAllBufferData();
+}
+
+void DirectionalLight::Draw(ID3D11DeviceContext * context, Camera* camera, ID3D11ShaderResourceView* normal, ID3D11ShaderResourceView* depth)
+{
+	GameObject::Draw(context, camera->projMat, camera->viewMat);
+
+	PrepareShader(camera, normal, depth);
+
+	context->DrawIndexed(3, 0, 0);
 }

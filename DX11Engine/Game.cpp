@@ -59,8 +59,10 @@ Game::~Game()
 	delete combineVS;
 	delete combinePS;
 
-	delete lightPS;
-	delete lightVS;
+	delete pointLightPS;
+	delete pointLightVS;
+	delete dirLightPS;
+	delete dirLightVS;
 
 	delete camera;
 
@@ -88,6 +90,11 @@ Game::~Game()
 	for (int i = 0; i < pLights.size(); i++)
 	{
 		delete pLights[i];
+	}
+
+	for (int i = 0; i < dLights.size(); i++)
+	{
+		delete dLights[i];
 	}
 }
 
@@ -252,11 +259,17 @@ void Game::LoadShaders()
 	skyboxPS = new SimplePixelShader(device, context);
 	skyboxPS->LoadShaderFile(L"SkyboxPS.cso");
 
-	lightPS = new SimplePixelShader(device, context);
-	lightPS->LoadShaderFile(L"LightsPS.cso");
+	pointLightPS = new SimplePixelShader(device, context);
+	pointLightPS->LoadShaderFile(L"PointLightsPS.cso");
 
-	lightVS = new SimpleVertexShader(device, context);
-	lightVS->LoadShaderFile(L"LightsVS.cso");
+	pointLightVS = new SimpleVertexShader(device, context);
+	pointLightVS->LoadShaderFile(L"PointLightsVS.cso");
+
+	dirLightPS = new SimplePixelShader(device, context);
+	dirLightPS->LoadShaderFile(L"DirectionalLightsPS.cso");
+
+	dirLightVS = new SimpleVertexShader(device, context);
+	dirLightVS->LoadShaderFile(L"DirectionalLightsVS.cso");
 
 	combineVS = new SimpleVertexShader(device, context);
 	combineVS->LoadShaderFile(L"CombineVS.cso");
@@ -348,11 +361,14 @@ void Game::CreateEntities()
 
 void Game::CreateLights()
 {
-	PointLight* temp1 = new PointLight(worldMatrix, sphere, skybox, lightVS, lightPS, sampleState, XMFLOAT4(+0.1f, +0.1f, +0.1f, +1.0f), XMFLOAT4(+0.4f, +0.4f, +1.0f, +1.0f), XMFLOAT3(-1.0f, 0.0f, -1.0f), XMFLOAT3(0, 0, 0), 10.0f);
+	PointLight* temp1 = new PointLight(worldMatrix, sphere, skybox, pointLightVS, pointLightPS, sampleState, XMFLOAT4(+0.1f, +0.1f, +0.1f, +1.0f), XMFLOAT4(+0.4f, +0.4f, +1.0f, +1.0f), XMFLOAT3(-1.0f, 0.0f, -1.0f), XMFLOAT3(0, 0, 0), 10.0f);
 	pLights.push_back(temp1);
 
-	PointLight* temp2 = new PointLight(worldMatrix, sphere, skybox, lightVS, lightPS, sampleState, XMFLOAT4(+0.1f, +0.1f, +0.1f, +1.0f), XMFLOAT4(+1.0f, +0.2f, +0.2f, +1.0f), XMFLOAT3(0.0f, 0.0f, 5.0f), XMFLOAT3(0, 0, 0), 7.0f);
+	PointLight* temp2 = new PointLight(worldMatrix, sphere, skybox, pointLightVS, pointLightPS, sampleState, XMFLOAT4(+0.1f, +0.1f, +0.1f, +1.0f), XMFLOAT4(+1.0f, +0.2f, +0.2f, +1.0f), XMFLOAT3(0.0f, 0.0f, 5.0f), XMFLOAT3(0, 0, 0), 7.0f);
 	pLights.push_back(temp2);
+
+	DirectionalLight* temp3 = new DirectionalLight(worldMatrix, skybox, dirLightVS, dirLightPS, sampleState, XMFLOAT4(+0.1f, +0.1f, +0.1f, +1.0f), XMFLOAT4(+0.5f, +0.8f, +0.9f, +1.0f), XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(1.0, -1.0, 1.0));
+	dLights.push_back(temp3);
 }
 
 
@@ -506,6 +522,13 @@ void Game::RenderLights()
 	for (int i = 0; i < pLights.size(); i++)
 	{
 		pLights[i]->Draw(context, camera, normalSRV, depthSRV);
+	}
+
+	context->RSSetState(0);
+
+	for (int i = 0; i < dLights.size(); i++)
+	{
+		dLights[i]->Draw(context, camera, normalSRV, depthSRV);
 	}
 }
 
