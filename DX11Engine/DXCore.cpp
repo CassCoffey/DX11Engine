@@ -388,6 +388,59 @@ void DXCore::OnResize()
 	device->CreateRenderTargetView(backBufferTexture, 0, &backBufferRTV);
 	backBufferTexture->Release();
 
+	// Set up the description of the texture to use for the buffers
+	D3D11_TEXTURE2D_DESC bufferDesc = {};
+	bufferDesc.Width = width;
+	bufferDesc.Height = height;
+	bufferDesc.MipLevels = 1;
+	bufferDesc.ArraySize = 1;
+	bufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	bufferDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+	bufferDesc.CPUAccessFlags = 0;
+	bufferDesc.MiscFlags = 0;
+	bufferDesc.SampleDesc.Count = 1;
+	bufferDesc.SampleDesc.Quality = 0;
+
+	ID3D11Texture2D* colorBufferTexture;
+	device->CreateTexture2D(&bufferDesc, 0, &colorBufferTexture);
+	device->CreateRenderTargetView(
+		colorBufferTexture,
+		0,
+		&colorRTV);
+	device->CreateShaderResourceView(
+		colorBufferTexture,
+		0,
+		&colorSRV);
+	colorBufferTexture->Release();
+
+	ID3D11Texture2D* normalBufferTexture;
+	device->CreateTexture2D(&bufferDesc, 0, &normalBufferTexture);
+	device->CreateRenderTargetView(
+		normalBufferTexture,
+		0,
+		&normalRTV);
+	device->CreateShaderResourceView(
+		normalBufferTexture,
+		0,
+		&normalSRV);
+	normalBufferTexture->Release();
+
+	ID3D11Texture2D* lightBufferTexture;
+	device->CreateTexture2D(&bufferDesc, 0, &lightBufferTexture);
+	device->CreateRenderTargetView(
+		lightBufferTexture,
+		0,
+		&lightsRTV);
+	device->CreateShaderResourceView(
+		lightBufferTexture,
+		0,
+		&lightsSRV);
+	lightBufferTexture->Release();
+
+	GBuffer[0] = colorRTV;
+	GBuffer[1] = normalRTV;
+
 	// Set up the description of the texture to use for the depth buffer
 	D3D11_TEXTURE2D_DESC depthStencilDesc = {};
 	depthStencilDesc.Width = width;
@@ -422,9 +475,14 @@ void DXCore::OnResize()
 	device->CreateShaderResourceView(depthBufferTexture, &dsrDesc, &depthSRV);
 	depthBufferTexture->Release();
 
+	ID3D11Texture2D* lightingDepthBufferTexture;
+	device->CreateTexture2D(&depthStencilDesc, 0, &lightingDepthBufferTexture);
+	device->CreateDepthStencilView(lightingDepthBufferTexture, &dsvDesc, &lightingDepthStencilView);
+	lightingDepthBufferTexture->Release();
+
 	// Bind the views to the pipeline, so rendering properly 
 	// uses their underlying textures
-	context->OMSetRenderTargets(1, &backBufferRTV, depthStencilView);
+	context->OMSetRenderTargets(2, GBuffer, depthStencilView);
 
 	// Lastly, set up a viewport so we render into
 	// to correct portion of the window
