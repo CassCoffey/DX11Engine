@@ -108,8 +108,10 @@ void Game::Init()
 	CreateMatrices();
 	CreateBasicGeometry();
 
-	CreateWICTextureFromFile(device, context, L"Assets/Textures/StoneWall_albedo.png", 0, &stoneTexture);
-	CreateWICTextureFromFile(device, context, L"Assets/Textures/StoneWall_normal.png", 0, &stoneNormal);
+	CreateWICTextureFromFile(device, context, L"Assets/Textures/rough_albedo.png", 0, &stoneTexture);
+	CreateWICTextureFromFile(device, context, L"Assets/Textures/rough_normals.png", 0, &stoneNormal);
+	CreateWICTextureFromFile(device, context, L"Assets/Textures/rough_roughness.png", 0, &stoneRoughness);
+	CreateWICTextureFromFile(device, context, L"Assets/Textures/rough_metal.png", 0, &stoneMetal);
 	CreateWICTextureFromFile(device, context, L"Assets/Textures/particle.jpg", 0, &particleTexture);
 
 	CreateDDSTextureFromFile(device, L"Assets/Textures/skybox.dds", 0, &skybox);
@@ -123,7 +125,7 @@ void Game::Init()
 
 	device->CreateSamplerState(&sampleDesc, &sampleState);
 
-	stoneMat = new Material(vertexShader, pixelShader, stoneTexture, stoneNormal, skybox, sampleState);
+	stoneMat = new Material(vertexShader, pixelShader, XMFLOAT4(1, 1, 1, 1), XMFLOAT2(1, 1), stoneTexture, stoneNormal, stoneRoughness, stoneMetal, skybox, sampleState);
 
 	CreateEntities();
 
@@ -418,8 +420,10 @@ void Game::Draw(float deltaTime, float totalTime)
 {
 	GBuffer[0] = colorRTV;
 	GBuffer[1] = normalRTV;
+	GBuffer[2] = roughnessRTV;
+	GBuffer[3] = metalRTV;
 
-	context->OMSetRenderTargets(2, GBuffer, depthStencilView);
+	context->OMSetRenderTargets(4, GBuffer, depthStencilView);
 
 	// Background color (Black in this case) for clearing
 	const float color[4] = { 0,0,0,0 };
@@ -430,6 +434,8 @@ void Game::Draw(float deltaTime, float totalTime)
 	context->ClearRenderTargetView(backBufferRTV, color);
 	context->ClearRenderTargetView(colorRTV, color);
 	context->ClearRenderTargetView(normalRTV, color);
+	context->ClearRenderTargetView(metalRTV, color);
+	context->ClearRenderTargetView(roughnessRTV, color);
 	context->ClearRenderTargetView(lightsRTV, color);
 	context->ClearDepthStencilView(
 		depthStencilView,
@@ -446,23 +452,18 @@ void Game::Draw(float deltaTime, float totalTime)
 	{
 		entities[i]->Draw(context, camera->projMat, camera->viewMat);
 	}
-
 	ClearStates();
 
 	RenderLights();
-
 	ClearStates();
 
 	Combine();
-
 	ClearStates();
 
 	RenderSkybox();
-
 	ClearStates();
 
 	RenderParticles();
-
 	ClearStates();
 
 	// Present the back buffer to the user
@@ -511,8 +512,10 @@ void Game::RenderLights()
 {
 	GBuffer[0] = lightsRTV;
 	GBuffer[1] = 0;
+	GBuffer[2] = 0;
+	GBuffer[3] = 0;
 
-	context->OMSetRenderTargets(2, GBuffer, nullptr);
+	context->OMSetRenderTargets(4, GBuffer, nullptr);
 
 	float blend[4] = { 1,1,1,1 };
 	context->OMSetBlendState(lightBlendState, blend, 0xffffffff);
@@ -536,8 +539,10 @@ void Game::Combine()
 {
 	GBuffer[0] = backBufferRTV;
 	GBuffer[1] = 0;
+	GBuffer[2] = 0;
+	GBuffer[3] = 0;
 
-	context->OMSetRenderTargets(2, GBuffer, depthStencilView);
+	context->OMSetRenderTargets(4, GBuffer, depthStencilView);
 
 	context->OMSetDepthStencilState(combineDepthState, 0);
 

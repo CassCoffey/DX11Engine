@@ -9,6 +9,8 @@ cbuffer externalData : register(b0)
 	matrix world;
 	matrix view;
 	matrix projection;
+
+	float2 uvScale;
 };
 
 // Struct representing a single vertex worth of data
@@ -18,12 +20,7 @@ cbuffer externalData : register(b0)
 // - Each variable must have a semantic, which defines its usage
 struct VertexShaderInput
 {
-	// Data type
-	//  |
-	//  |   Name          Semantic
-	//  |    |                |
-	//  v    v                v
-	float3 position		: POSITION;     // XYZ position
+	float3 position		: POSITION;
 	float3 normal		: NORMAL;
 	float3 tangent		: TANGENT;
 	float2 uv			: TEXCOORD;
@@ -36,11 +33,6 @@ struct VertexShaderInput
 // - Each variable must have a semantic, which defines its usage
 struct VertexToPixel
 {
-	// Data type
-	//  |
-	//  |   Name          Semantic
-	//  |    |                |
-	//  v    v                v
 	float4 position		: SV_POSITION;	// XYZW position (System Value Position)
 	float3 normal		: NORMAL;
 	float3 tangent		: TANGENT;
@@ -79,7 +71,7 @@ VertexToPixel main(VertexShaderInput input)
 	output.normal = mul(input.normal, (float3x3)world);
 	output.tangent = mul(input.tangent, (float3x3)world);
 
-	output.uv = input.uv;
+	output.uv = input.uv * uvScale;
 
 	output.depth = output.position.z / output.position.w;
 

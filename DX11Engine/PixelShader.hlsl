@@ -1,6 +1,8 @@
+// Texture Variables
 Texture2D diffuseTexture : register(t0);
 Texture2D normalTexture : register(t1);
-TextureCube skyTexture : register(t2);
+Texture2D roughnessTexture : register(t2);
+TextureCube skyTexture : register(t3);
 SamplerState basicSampler : register(s0);
 
 // Struct representing the data we expect to receive from earlier pipeline stages

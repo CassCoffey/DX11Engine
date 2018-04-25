@@ -72,13 +72,17 @@ protected:
 	ID3D11ShaderResourceView* colorSRV;
 	ID3D11RenderTargetView* normalRTV;
 	ID3D11ShaderResourceView* normalSRV;
+	ID3D11RenderTargetView* roughnessRTV;
+	ID3D11ShaderResourceView* roughnessSRV;
+	ID3D11RenderTargetView* metalRTV;
+	ID3D11ShaderResourceView* metalSRV;
 	ID3D11RenderTargetView* lightsRTV;
 	ID3D11ShaderResourceView* lightsSRV;
 	ID3D11DepthStencilView* depthStencilView;
 	ID3D11ShaderResourceView* depthSRV;
 	ID3D11DepthStencilView* lightingDepthStencilView;
 
-	ID3D11RenderTargetView* GBuffer[2];
+	ID3D11RenderTargetView* GBuffer[4];
 
 	// Helper function for allocating a console window
 	void CreateConsoleWindow(int bufferLines, int bufferColumns, int windowLines, int windowColumns);

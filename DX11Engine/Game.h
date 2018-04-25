@@ -45,6 +45,8 @@ private:
 	// Texture
 	ID3D11ShaderResourceView* stoneTexture;
 	ID3D11ShaderResourceView* stoneNormal;
+	ID3D11ShaderResourceView* stoneRoughness;
+	ID3D11ShaderResourceView* stoneMetal;
 
 	// Skybox
 	ID3D11ShaderResourceView* skybox;
