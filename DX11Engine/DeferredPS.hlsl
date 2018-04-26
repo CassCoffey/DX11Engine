@@ -5,13 +5,6 @@ Texture2D roughnessTexture	: register(t2);
 Texture2D metalTexture		: register(t3);
 SamplerState basicSampler	: register(s0);
 
-// Data that can change per material
-cbuffer perMaterial : register(b0)
-{
-	// Surface color
-	float4 Color;
-};
-
 struct VertexToPixel
 {
 	float4 position		: SV_POSITION;
@@ -43,27 +36,31 @@ PSOutput main(VertexToPixel input)
 {
 	PSOutput OUT;
 
-	float3 unpackedNormal = normalTexture.Sample(basicSampler, input.uv) * 2.0f - 1.0f;
+	// Fix for poor normals: re-normalizing interpolated normals
+	input.normal = normalize(input.normal);
+	input.tangent = normalize(input.tangent);
 
-	float3 N = normalize(input.normal);
-	float3 T = normalize(input.tangent - dot(input.tangent, N) * N);
-	float3 B = cross(N, T);
+	float3 unpackedNormal = normalTexture.Sample(basicSampler, input.uv).rgb * 2.0f - 1.0f;
+
+	float3 N = input.normal;
+	float3 T = normalize(input.tangent - N * dot(input.tangent, N));
+	float3 B = cross(T, N);
 
 	float3x3 TBN = float3x3(T, B, N);
 
-	float3 finalNormal = mul(unpackedNormal, TBN);
+	input.normal = normalize(mul(unpackedNormal, TBN));
 
-	OUT.normals = float4(finalNormal, 1);
+	OUT.normals = float4(input.normal, 1);
 
 	float4 surfaceColor = diffuseTexture.Sample(basicSampler, input.uv);
 
-	OUT.color = surfaceColor;
+	OUT.color = float4(pow(surfaceColor.rgb, 2.2), 1);
 
 	float roughness = roughnessTexture.Sample(basicSampler, input.uv).r;
-	OUT.roughness = roughness;
+	OUT.roughness.r = roughness;
 
 	float metal = metalTexture.Sample(basicSampler, input.uv).r;
-	OUT.metal = metal;
+	OUT.metal.r = metal;
 
 	OUT.depth = float4(input.depth.x, input.depth.x, input.depth.x, 1);
 

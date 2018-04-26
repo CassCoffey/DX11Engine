@@ -2,7 +2,7 @@
 
 
 
-Material::Material(SimpleVertexShader* vs, SimplePixelShader* ps, XMFLOAT4 col, XMFLOAT2 scale, ID3D11ShaderResourceView* tex, ID3D11ShaderResourceView* norm, ID3D11ShaderResourceView* rough, ID3D11ShaderResourceView* met, ID3D11ShaderResourceView* sky, ID3D11SamplerState* ss)
+Material::Material(SimpleVertexShader* vs, SimplePixelShader* ps, XMFLOAT2 scale, ID3D11ShaderResourceView* tex, ID3D11ShaderResourceView* norm, ID3D11ShaderResourceView* rough, ID3D11ShaderResourceView* met, ID3D11ShaderResourceView* sky, ID3D11SamplerState* ss)
 {
 	pixelShader = ps;
 	vertexShader = vs;
@@ -10,7 +10,6 @@ Material::Material(SimpleVertexShader* vs, SimplePixelShader* ps, XMFLOAT4 col, 
 	normals = norm;
 	metal = met;
 	roughness = rough;
-	color = col;
 	uvScale = scale;
 	skybox = sky;
 	sampleState = ss;
@@ -31,9 +30,6 @@ void Material::PrepareMaterial(XMFLOAT4X4 proj, XMFLOAT4X4 view, XMFLOAT4X4 worl
 	vertexShader->SetMatrix4x4("projection", proj);
 	vertexShader->SetMatrix4x4("world", world);
 	vertexShader->SetFloat2("uvScale", uvScale);
-
-	pixelShader->SetFloat4("Color", color);
-	pixelShader->CopyBufferData("perMaterial");
 
 	// Texture Stuff
 	pixelShader->SetSamplerState("basicSampler", sampleState);

@@ -10,5 +10,6 @@ struct VertexToPixel
 
 float4 main(VertexToPixel input) : SV_TARGET
 {
-	return colorTexture.Sample(basicSampler, input.uv) * lightTexture.Sample(basicSampler, input.uv);
+	float3 gammaCorrect = pow(colorTexture.Sample(basicSampler, input.uv) * lightTexture.Sample(basicSampler, input.uv), 1.0 / 2.2);
+	return float4(gammaCorrect, 1);
 }

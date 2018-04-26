@@ -67,9 +67,21 @@ Game::~Game()
 	delete camera;
 
 	delete stoneMat;
+	delete floorMat;
+	delete scratchedMat;
 
 	stoneTexture->Release();
 	stoneNormal->Release();
+	stoneRoughness->Release();
+	stoneMetal->Release();
+	floorTexture->Release();
+	floorNormal->Release();
+	floorRoughness->Release();
+	floorMetal->Release();
+	scratchedTexture->Release();
+	scratchedNormal->Release();
+	scratchedRoughness->Release();
+	scratchedMetal->Release();
 	sampleState->Release();
 	particleTexture->Release();
 	particleBlendState->Release();
@@ -112,6 +124,14 @@ void Game::Init()
 	CreateWICTextureFromFile(device, context, L"Assets/Textures/rough_normals.png", 0, &stoneNormal);
 	CreateWICTextureFromFile(device, context, L"Assets/Textures/rough_roughness.png", 0, &stoneRoughness);
 	CreateWICTextureFromFile(device, context, L"Assets/Textures/rough_metal.png", 0, &stoneMetal);
+	CreateWICTextureFromFile(device, context, L"Assets/Textures/floor_albedo.png", 0, &floorTexture);
+	CreateWICTextureFromFile(device, context, L"Assets/Textures/floor_normals.png", 0, &floorNormal);
+	CreateWICTextureFromFile(device, context, L"Assets/Textures/floor_roughness.png", 0, &floorRoughness);
+	CreateWICTextureFromFile(device, context, L"Assets/Textures/floor_metal.png", 0, &floorMetal);
+	CreateWICTextureFromFile(device, context, L"Assets/Textures/scratched_albedo.png", 0, &scratchedTexture);
+	CreateWICTextureFromFile(device, context, L"Assets/Textures/scratched_normals.png", 0, &scratchedNormal);
+	CreateWICTextureFromFile(device, context, L"Assets/Textures/scratched_roughness.png", 0, &scratchedRoughness);
+	CreateWICTextureFromFile(device, context, L"Assets/Textures/scratched_metal.png", 0, &scratchedMetal);
 	CreateWICTextureFromFile(device, context, L"Assets/Textures/particle.jpg", 0, &particleTexture);
 
 	CreateDDSTextureFromFile(device, L"Assets/Textures/skybox.dds", 0, &skybox);
@@ -125,7 +145,9 @@ void Game::Init()
 
 	device->CreateSamplerState(&sampleDesc, &sampleState);
 
-	stoneMat = new Material(vertexShader, pixelShader, XMFLOAT4(1, 1, 1, 1), XMFLOAT2(1, 1), stoneTexture, stoneNormal, stoneRoughness, stoneMetal, skybox, sampleState);
+	stoneMat = new Material(vertexShader, pixelShader, XMFLOAT2(2, 2), stoneTexture, stoneNormal, stoneRoughness, stoneMetal, skybox, sampleState);
+	floorMat = new Material(vertexShader, pixelShader, XMFLOAT2(2, 2), floorTexture, floorNormal, floorRoughness, floorMetal, skybox, sampleState);
+	scratchedMat = new Material(vertexShader, pixelShader, XMFLOAT2(2, 2), scratchedTexture, scratchedNormal, scratchedRoughness, scratchedMetal, skybox, sampleState);
 
 	CreateEntities();
 
@@ -351,13 +373,13 @@ void Game::CreateBasicGeometry()
 
 void Game::CreateEntities()
 {
-	Entity* temp0 = new Entity(cube, stoneMat, worldMatrix, XMFLOAT3(0, -1, 0), XMFLOAT3(0, 0, 0), XMFLOAT3(25, 1, 25));
-	entities.push_back(temp0);
-	Entity* temp1 = new Entity(cube, stoneMat, worldMatrix, XMFLOAT3(0, 0, 0), XMFLOAT3(0, 0, 0), XMFLOAT3(1, 1, 1));
+	//Entity* temp0 = new Entity(cube, stoneMat, worldMatrix, XMFLOAT3(0, -1, 0), XMFLOAT3(0, 0, 0), XMFLOAT3(25, 1, 25));
+	//entities.push_back(temp0);
+	Entity* temp1 = new Entity(sphere, stoneMat, worldMatrix, XMFLOAT3(0, 0, 0), XMFLOAT3(0, 0, 0), XMFLOAT3(1, 1, 1));
 	entities.push_back(temp1);
-	Entity* temp2 = new Entity(sphere, stoneMat, worldMatrix, XMFLOAT3(-3, 0, 0), XMFLOAT3(0, 0, 0), XMFLOAT3(1, 1, 1));
+	Entity* temp2 = new Entity(sphere, floorMat, worldMatrix, XMFLOAT3(-3, 0, 0), XMFLOAT3(0, 0, 0), XMFLOAT3(1, 1, 1));
 	entities.push_back(temp2);
-	Entity* temp3 = new Entity(cube, stoneMat, worldMatrix, XMFLOAT3(0, 0, 10), XMFLOAT3(0, 0, 0), XMFLOAT3(1, 1, 1));
+	Entity* temp3 = new Entity(sphere, scratchedMat, worldMatrix, XMFLOAT3(0, 0, 10), XMFLOAT3(0, 0, 0), XMFLOAT3(1, 1, 1));
 	entities.push_back(temp3);
 }
 
@@ -524,14 +546,14 @@ void Game::RenderLights()
 
 	for (int i = 0; i < pLights.size(); i++)
 	{
-		pLights[i]->Draw(context, camera, normalSRV, depthSRV);
+		pLights[i]->Draw(context, camera, colorSRV, normalSRV, roughnessSRV, metalSRV, depthSRV);
 	}
 
 	context->RSSetState(0);
 
 	for (int i = 0; i < dLights.size(); i++)
 	{
-		dLights[i]->Draw(context, camera, normalSRV, depthSRV);
+		dLights[i]->Draw(context, camera, colorSRV, normalSRV, roughnessSRV, metalSRV, depthSRV);
 	}
 }
 

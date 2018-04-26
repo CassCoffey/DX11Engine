@@ -47,6 +47,14 @@ private:
 	ID3D11ShaderResourceView* stoneNormal;
 	ID3D11ShaderResourceView* stoneRoughness;
 	ID3D11ShaderResourceView* stoneMetal;
+	ID3D11ShaderResourceView* floorTexture;
+	ID3D11ShaderResourceView* floorNormal;
+	ID3D11ShaderResourceView* floorRoughness;
+	ID3D11ShaderResourceView* floorMetal;
+	ID3D11ShaderResourceView* scratchedTexture;
+	ID3D11ShaderResourceView* scratchedNormal;
+	ID3D11ShaderResourceView* scratchedRoughness;
+	ID3D11ShaderResourceView* scratchedMetal;
 
 	// Skybox
 	ID3D11ShaderResourceView* skybox;
@@ -71,6 +79,8 @@ private:
 
 	// Materials
 	Material* stoneMat;
+	Material* floorMat;
+	Material* scratchedMat;
 
 	// Meshes
 	Mesh* cone;

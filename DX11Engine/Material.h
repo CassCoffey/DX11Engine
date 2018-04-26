@@ -8,7 +8,7 @@ using namespace DirectX;
 class Material
 {
 public:
-	Material(SimpleVertexShader* vs, SimplePixelShader* ps, XMFLOAT4 col, XMFLOAT2 scale, ID3D11ShaderResourceView* tex, ID3D11ShaderResourceView* norm, ID3D11ShaderResourceView* rough, ID3D11ShaderResourceView* met, ID3D11ShaderResourceView* sky, ID3D11SamplerState* ss);
+	Material(SimpleVertexShader* vs, SimplePixelShader* ps, XMFLOAT2 scale, ID3D11ShaderResourceView* tex, ID3D11ShaderResourceView* norm, ID3D11ShaderResourceView* rough, ID3D11ShaderResourceView* met, ID3D11ShaderResourceView* sky, ID3D11SamplerState* ss);
 	~Material();
 
 	void PrepareMaterial(XMFLOAT4X4 proj, XMFLOAT4X4 view, XMFLOAT4X4 world);
@@ -16,8 +16,6 @@ public:
 private:
 	// Basic Info
 	XMFLOAT2 uvScale;
-	XMFLOAT4 color;
-	float shininess;
 
 	// Texture Info
 	ID3D11ShaderResourceView* texture;

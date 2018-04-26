@@ -11,7 +11,7 @@ DirectionalLight::~DirectionalLight()
 
 }
 
-void DirectionalLight::PrepareShader(Camera* camera, ID3D11ShaderResourceView* normal, ID3D11ShaderResourceView* depth)
+void DirectionalLight::PrepareShader(Camera* camera, ID3D11ShaderResourceView* albedo, ID3D11ShaderResourceView* normal, ID3D11ShaderResourceView* roughness, ID3D11ShaderResourceView* metal, ID3D11ShaderResourceView* depth)
 {
 	info = { ambientColor, diffuseColor, rotation, 0.0f };
 
@@ -19,8 +19,11 @@ void DirectionalLight::PrepareShader(Camera* camera, ID3D11ShaderResourceView* n
 	pixelShader->SetSamplerState("basicSampler", sampler);
 	pixelShader->SetData("light", &info, sizeof(LightShaderInfo));
 	pixelShader->SetFloat3("CameraPosition", camera->position);
+	pixelShader->SetShaderResourceView("albedoBuffer", albedo);
 	pixelShader->SetShaderResourceView("normalBuffer", normal);
 	pixelShader->SetShaderResourceView("depthBuffer", depth);
+	pixelShader->SetShaderResourceView("roughnessBuffer", roughness);
+	pixelShader->SetShaderResourceView("metalBuffer", metal);
 	pixelShader->SetShaderResourceView("SkyTexture", skybox);
 	pixelShader->SetMatrix4x4("inView", camera->inverseViewMat);
 	pixelShader->SetMatrix4x4("inProjection", camera->inverseProjMat);
@@ -39,11 +42,11 @@ void DirectionalLight::PrepareShader(Camera* camera, ID3D11ShaderResourceView* n
 	pixelShader->CopyAllBufferData();
 }
 
-void DirectionalLight::Draw(ID3D11DeviceContext * context, Camera* camera, ID3D11ShaderResourceView* normal, ID3D11ShaderResourceView* depth)
+void DirectionalLight::Draw(ID3D11DeviceContext * context, Camera* camera, ID3D11ShaderResourceView* albedo, ID3D11ShaderResourceView* normal, ID3D11ShaderResourceView* roughness, ID3D11ShaderResourceView* metal, ID3D11ShaderResourceView* depth)
 {
 	GameObject::Draw(context, camera->projMat, camera->viewMat);
 
-	PrepareShader(camera, normal, depth);
+	PrepareShader(camera, albedo, normal, roughness, metal, depth);
 
 	context->DrawIndexed(3, 0, 0);
 }
