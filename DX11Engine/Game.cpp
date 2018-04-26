@@ -375,7 +375,7 @@ void Game::CreateEntities()
 {
 	//Entity* temp0 = new Entity(cube, stoneMat, worldMatrix, XMFLOAT3(0, -1, 0), XMFLOAT3(0, 0, 0), XMFLOAT3(25, 1, 25));
 	//entities.push_back(temp0);
-	Entity* temp1 = new Entity(sphere, stoneMat, worldMatrix, XMFLOAT3(0, 0, 0), XMFLOAT3(0, 0, 0), XMFLOAT3(1, 1, 1));
+	Entity* temp1 = new Entity(cube, stoneMat, worldMatrix, XMFLOAT3(0, 0, 0), XMFLOAT3(0, 0, 0), XMFLOAT3(1, 1, 1));
 	entities.push_back(temp1);
 	Entity* temp2 = new Entity(sphere, floorMat, worldMatrix, XMFLOAT3(-3, 0, 0), XMFLOAT3(0, 0, 0), XMFLOAT3(1, 1, 1));
 	entities.push_back(temp2);

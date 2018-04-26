@@ -448,6 +448,20 @@ void DXCore::OnResize()
 	bufferDesc.SampleDesc.Count = 1;
 	bufferDesc.SampleDesc.Quality = 0;
 
+	// Set up the description of the texture to use for the buffers
+	D3D11_TEXTURE2D_DESC normalDesc = {};
+	normalDesc.Width = width;
+	normalDesc.Height = height;
+	normalDesc.MipLevels = 1;
+	normalDesc.ArraySize = 1;
+	normalDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	normalDesc.Usage = D3D11_USAGE_DEFAULT;
+	normalDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+	normalDesc.CPUAccessFlags = 0;
+	normalDesc.MiscFlags = 0;
+	normalDesc.SampleDesc.Count = 1;
+	normalDesc.SampleDesc.Quality = 0;
+
 	ID3D11Texture2D* colorBufferTexture;
 	device->CreateTexture2D(&bufferDesc, 0, &colorBufferTexture);
 	device->CreateRenderTargetView(
@@ -461,7 +475,7 @@ void DXCore::OnResize()
 	colorBufferTexture->Release();
 
 	ID3D11Texture2D* normalBufferTexture;
-	device->CreateTexture2D(&bufferDesc, 0, &normalBufferTexture);
+	device->CreateTexture2D(&normalDesc, 0, &normalBufferTexture);
 	device->CreateRenderTargetView(
 		normalBufferTexture,
 		0,
