@@ -145,7 +145,7 @@ void Game::Init()
 
 	device->CreateSamplerState(&sampleDesc, &sampleState);
 
-	stoneMat = new Material(vertexShader, pixelShader, XMFLOAT2(2, 2), stoneTexture, stoneNormal, stoneRoughness, stoneMetal, skybox, sampleState);
+	stoneMat = new Material(vertexShader, pixelShader, XMFLOAT2(1, 1), stoneTexture, stoneNormal, stoneRoughness, stoneMetal, skybox, sampleState);
 	floorMat = new Material(vertexShader, pixelShader, XMFLOAT2(2, 2), floorTexture, floorNormal, floorRoughness, floorMetal, skybox, sampleState);
 	scratchedMat = new Material(vertexShader, pixelShader, XMFLOAT2(2, 2), scratchedTexture, scratchedNormal, scratchedRoughness, scratchedMetal, skybox, sampleState);
 

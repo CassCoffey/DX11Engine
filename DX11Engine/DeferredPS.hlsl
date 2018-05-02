@@ -37,20 +37,20 @@ PSOutput main(VertexToPixel input)
 	PSOutput OUT;
 
 	// Fix for poor normals: re-normalizing interpolated normals
-	input.normal = normalize(input.normal);
-	input.tangent = normalize(input.tangent);
+	float3 normal = normalize(input.normal);
+	float3 tangent = normalize(input.tangent);
 
 	float3 unpackedNormal = normalTexture.Sample(basicSampler, input.uv).rgb * 2.0f - 1.0f;
 
-	float3 N = input.normal;
-	float3 T = normalize(input.tangent - N * dot(input.tangent, N));
+	float3 N = normal;
+	float3 T = normalize(tangent - N * dot(tangent, N));
 	float3 B = cross(T, N);
 
 	float3x3 TBN = float3x3(T, B, N);
 
-	input.normal = normalize(mul(unpackedNormal, TBN));
+	normal = normalize(mul(unpackedNormal, TBN));
 
-	OUT.normals = float4(input.normal, 1);
+	OUT.normals = float4(normal, 1);
 
 	float4 surfaceColor = diffuseTexture.Sample(basicSampler, input.uv);
 
