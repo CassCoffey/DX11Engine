@@ -18,9 +18,8 @@ struct PSOutput
 {
 	float4 color	: SV_TARGET0;
 	float4 normals	: SV_TARGET1;
-	float4 roughness: SV_TARGET2;
-	float4 metal	: SV_TARGET3;
-	float4 depth	: SV_TARGET4;
+	float4 pbr		: SV_TARGET2;
+	//float4 depth	: SV_TARGET3;
 };
 
 // --------------------------------------------------------
@@ -57,12 +56,12 @@ PSOutput main(VertexToPixel input)
 	OUT.color = float4(pow(surfaceColor.rgb, 2.2), 1);
 
 	float roughness = roughnessTexture.Sample(basicSampler, input.uv).r;
-	OUT.roughness.r = roughness;
+	OUT.pbr.r = roughness;
 
 	float metal = metalTexture.Sample(basicSampler, input.uv).r;
-	OUT.metal.r = metal;
+	OUT.pbr.g = metal;
 
-	OUT.depth = float4(input.depth.x, input.depth.x, input.depth.x, 1);
+	//OUT.depth = float4(input.depth.x, input.depth.x, input.depth.x, 1);
 
 	return OUT;
 }

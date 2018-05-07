@@ -11,7 +11,7 @@ PointLight::~PointLight()
 
 }
 
-void PointLight::PrepareShader(Camera* camera, ID3D11ShaderResourceView* albedo, ID3D11ShaderResourceView* normal, ID3D11ShaderResourceView* roughness, ID3D11ShaderResourceView* metal, ID3D11ShaderResourceView* depth)
+void PointLight::PrepareShader(Camera* camera, ID3D11ShaderResourceView* albedo, ID3D11ShaderResourceView* normal, ID3D11ShaderResourceView* pbr, ID3D11ShaderResourceView* depth)
 {
 	info = {ambientColor, diffuseColor, position, range};
 
@@ -25,8 +25,7 @@ void PointLight::PrepareShader(Camera* camera, ID3D11ShaderResourceView* albedo,
 	pixelShader->SetFloat3("CameraPosition", camera->position);
 	pixelShader->SetShaderResourceView("albedoBuffer", albedo);
 	pixelShader->SetShaderResourceView("normalBuffer", normal);
-	pixelShader->SetShaderResourceView("roughnessBuffer", roughness);
-	pixelShader->SetShaderResourceView("metalBuffer", metal);
+	pixelShader->SetShaderResourceView("pbrBuffer", pbr);
 	pixelShader->SetShaderResourceView("depthBuffer", depth);
 	pixelShader->SetShaderResourceView("SkyTexture", skybox);
 	pixelShader->SetMatrix4x4("inView", camera->inverseViewMat);

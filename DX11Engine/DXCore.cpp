@@ -84,10 +84,8 @@ DXCore::~DXCore()
 	if (backBufferRTV) { backBufferRTV->Release();}
 	if (normalRTV) { normalRTV->Release(); }
 	if (normalSRV) { normalSRV->Release(); }
-	if (roughnessRTV) { roughnessRTV->Release(); }
-	if (roughnessSRV) { roughnessSRV->Release(); }
-	if (metalRTV) { metalRTV->Release(); }
-	if (metalSRV) { metalSRV->Release(); }
+	if (pbrRTV) { pbrRTV->Release(); }
+	if (pbrSRV) { pbrSRV->Release(); }
 	if (depthSRV) { depthSRV->Release(); }
 	if (lightsRTV) { lightsRTV->Release(); }
 	if (lightsSRV) { lightsSRV->Release(); }
@@ -300,29 +298,17 @@ HRESULT DXCore::InitDirectX()
 		&normalSRV);
 	normalBufferTexture->Release();
 
-	ID3D11Texture2D* roughnessBufferTexture;
-	device->CreateTexture2D(&bufferDesc, 0, &roughnessBufferTexture);
+	ID3D11Texture2D* pbrBufferTexture;
+	device->CreateTexture2D(&bufferDesc, 0, &pbrBufferTexture);
 	device->CreateRenderTargetView(
-		roughnessBufferTexture,
+		pbrBufferTexture,
 		0,
-		&roughnessRTV);
+		&pbrRTV);
 	device->CreateShaderResourceView(
-		roughnessBufferTexture,
+		pbrBufferTexture,
 		0,
-		&roughnessSRV);
-	roughnessBufferTexture->Release();
-
-	ID3D11Texture2D* metalBufferTexture;
-	device->CreateTexture2D(&bufferDesc, 0, &metalBufferTexture);
-	device->CreateRenderTargetView(
-		metalBufferTexture,
-		0,
-		&metalRTV);
-	device->CreateShaderResourceView(
-		metalBufferTexture,
-		0,
-		&metalSRV);
-	metalBufferTexture->Release();
+		&pbrSRV);
+	pbrBufferTexture->Release();
 
 	ID3D11Texture2D* lightBufferTexture;
 	device->CreateTexture2D(&bufferDesc, 0, &lightBufferTexture);
@@ -338,8 +324,7 @@ HRESULT DXCore::InitDirectX()
 
 	GBuffer[0] = colorRTV;
 	GBuffer[1] = normalRTV;
-	GBuffer[2] = roughnessRTV;
-	GBuffer[3] = metalRTV;
+	GBuffer[2] = pbrRTV;
 
 	// Set up the description of the texture to use for the depth buffer
 	D3D11_TEXTURE2D_DESC depthStencilDesc = {};
@@ -382,7 +367,7 @@ HRESULT DXCore::InitDirectX()
 
 	// Bind the views to the pipeline, so rendering properly 
 	// uses their underlying textures
-	context->OMSetRenderTargets(4, GBuffer, depthStencilView);
+	context->OMSetRenderTargets(3, GBuffer, depthStencilView);
 
 	// Lastly, set up a viewport so we render into
 	// to correct portion of the window
@@ -415,8 +400,7 @@ void DXCore::OnResize()
 	if (colorRTV) { colorRTV->Release(); }
 	if (backBufferRTV) { backBufferRTV->Release(); }
 	if (normalRTV) { normalRTV->Release(); }
-	if (roughnessRTV) { roughnessRTV->Release(); }
-	if (metalRTV) { metalRTV->Release(); }
+	if (pbrRTV) { pbrRTV->Release(); }
 	if (lightsRTV) { lightsRTV->Release(); }
 
 	// Resize the underlying swap chain buffers
@@ -486,29 +470,17 @@ void DXCore::OnResize()
 		&normalSRV);
 	normalBufferTexture->Release();
 
-	ID3D11Texture2D* roughnessBufferTexture;
-	device->CreateTexture2D(&bufferDesc, 0, &roughnessBufferTexture);
+	ID3D11Texture2D* pbrBufferTexture;
+	device->CreateTexture2D(&bufferDesc, 0, &pbrBufferTexture);
 	device->CreateRenderTargetView(
-		roughnessBufferTexture,
+		pbrBufferTexture,
 		0,
-		&roughnessRTV);
+		&pbrRTV);
 	device->CreateShaderResourceView(
-		roughnessBufferTexture,
+		pbrBufferTexture,
 		0,
-		&roughnessSRV);
-	roughnessBufferTexture->Release();
-
-	ID3D11Texture2D* metalBufferTexture;
-	device->CreateTexture2D(&bufferDesc, 0, &metalBufferTexture);
-	device->CreateRenderTargetView(
-		metalBufferTexture,
-		0,
-		&metalRTV);
-	device->CreateShaderResourceView(
-		metalBufferTexture,
-		0,
-		&metalSRV);
-	metalBufferTexture->Release();
+		&pbrSRV);
+	pbrBufferTexture->Release();
 
 	ID3D11Texture2D* lightBufferTexture;
 	device->CreateTexture2D(&bufferDesc, 0, &lightBufferTexture);
@@ -524,8 +496,7 @@ void DXCore::OnResize()
 
 	GBuffer[0] = colorRTV;
 	GBuffer[1] = normalRTV;
-	GBuffer[2] = roughnessRTV;
-	GBuffer[3] = metalRTV;
+	GBuffer[2] = pbrRTV;
 
 	// Set up the description of the texture to use for the depth buffer
 	D3D11_TEXTURE2D_DESC depthStencilDesc = {};
@@ -568,7 +539,7 @@ void DXCore::OnResize()
 
 	// Bind the views to the pipeline, so rendering properly 
 	// uses their underlying textures
-	context->OMSetRenderTargets(4, GBuffer, depthStencilView);
+	context->OMSetRenderTargets(3, GBuffer, depthStencilView);
 
 	// Lastly, set up a viewport so we render into
 	// to correct portion of the window

@@ -145,7 +145,7 @@ void Game::Init()
 
 	device->CreateSamplerState(&sampleDesc, &sampleState);
 
-	stoneMat = new Material(vertexShader, pixelShader, XMFLOAT2(1, 1), stoneTexture, stoneNormal, stoneRoughness, stoneMetal, skybox, sampleState);
+	stoneMat = new Material(vertexShader, pixelShader, XMFLOAT2(2, 2), stoneTexture, stoneNormal, stoneRoughness, stoneMetal, skybox, sampleState);
 	floorMat = new Material(vertexShader, pixelShader, XMFLOAT2(2, 2), floorTexture, floorNormal, floorRoughness, floorMetal, skybox, sampleState);
 	scratchedMat = new Material(vertexShader, pixelShader, XMFLOAT2(2, 2), scratchedTexture, scratchedNormal, scratchedRoughness, scratchedMetal, skybox, sampleState);
 
@@ -373,8 +373,8 @@ void Game::CreateBasicGeometry()
 
 void Game::CreateEntities()
 {
-	//Entity* temp0 = new Entity(cube, stoneMat, worldMatrix, XMFLOAT3(0, -1, 0), XMFLOAT3(0, 0, 0), XMFLOAT3(25, 1, 25));
-	//entities.push_back(temp0);
+	Entity* temp0 = new Entity(cube, stoneMat, worldMatrix, XMFLOAT3(0, -1, 0), XMFLOAT3(0, 0, 0), XMFLOAT3(25, 1, 25));
+	entities.push_back(temp0);
 	Entity* temp1 = new Entity(cube, stoneMat, worldMatrix, XMFLOAT3(0, 0, 0), XMFLOAT3(0, 0, 0), XMFLOAT3(1, 1, 1));
 	entities.push_back(temp1);
 	Entity* temp2 = new Entity(sphere, floorMat, worldMatrix, XMFLOAT3(-3, 0, 0), XMFLOAT3(0, 0, 0), XMFLOAT3(1, 1, 1));
@@ -442,10 +442,9 @@ void Game::Draw(float deltaTime, float totalTime)
 {
 	GBuffer[0] = colorRTV;
 	GBuffer[1] = normalRTV;
-	GBuffer[2] = roughnessRTV;
-	GBuffer[3] = metalRTV;
+	GBuffer[2] = pbrRTV;
 
-	context->OMSetRenderTargets(4, GBuffer, depthStencilView);
+	context->OMSetRenderTargets(3, GBuffer, depthStencilView);
 
 	// Background color (Black in this case) for clearing
 	const float color[4] = { 0,0,0,0 };
@@ -456,8 +455,7 @@ void Game::Draw(float deltaTime, float totalTime)
 	context->ClearRenderTargetView(backBufferRTV, color);
 	context->ClearRenderTargetView(colorRTV, color);
 	context->ClearRenderTargetView(normalRTV, color);
-	context->ClearRenderTargetView(metalRTV, color);
-	context->ClearRenderTargetView(roughnessRTV, color);
+	context->ClearRenderTargetView(pbrRTV, color);
 	context->ClearRenderTargetView(lightsRTV, color);
 	context->ClearDepthStencilView(
 		depthStencilView,
@@ -546,14 +544,14 @@ void Game::RenderLights()
 
 	for (int i = 0; i < pLights.size(); i++)
 	{
-		pLights[i]->Draw(context, camera, colorSRV, normalSRV, roughnessSRV, metalSRV, depthSRV);
+		pLights[i]->Draw(context, camera, colorSRV, normalSRV, pbrSRV, depthSRV);
 	}
 
 	context->RSSetState(0);
 
 	for (int i = 0; i < dLights.size(); i++)
 	{
-		dLights[i]->Draw(context, camera, colorSRV, normalSRV, roughnessSRV, metalSRV, depthSRV);
+		dLights[i]->Draw(context, camera, colorSRV, normalSRV, pbrSRV, depthSRV);
 	}
 }
 

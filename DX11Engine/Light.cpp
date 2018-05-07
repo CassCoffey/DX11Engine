@@ -17,11 +17,11 @@ Light::~Light()
 
 }
 
-void Light::Draw(ID3D11DeviceContext * context, Camera* camera, ID3D11ShaderResourceView* albedo, ID3D11ShaderResourceView* normal, ID3D11ShaderResourceView* roughness, ID3D11ShaderResourceView* metal, ID3D11ShaderResourceView* depth)
+void Light::Draw(ID3D11DeviceContext * context, Camera* camera, ID3D11ShaderResourceView* albedo, ID3D11ShaderResourceView* normal, ID3D11ShaderResourceView* pbr, ID3D11ShaderResourceView* depth)
 {
 	GameObject::Draw(context, camera->projMat, camera->viewMat);
 
-	PrepareShader(camera, albedo, normal, roughness, metal, depth);
+	PrepareShader(camera, albedo, normal, pbr, depth);
 
 	UINT stride = sizeof(Vertex);
 	UINT offset = 0;
